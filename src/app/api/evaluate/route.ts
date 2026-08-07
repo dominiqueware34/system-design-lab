@@ -69,6 +69,7 @@ function buildUserPrompt(
   const parts: string[] = [
     "## Problem",
     `Title: ${problem.title}`,
+    `Track: ${problem.track} (${problem.track === "agentic" ? "agentic AI workflow" : "classic distributed systems"})`,
     `Difficulty: ${problem.difficulty}`,
     `Summary: ${problem.summary}`,
     `Description: ${problem.description}`,
@@ -79,6 +80,21 @@ function buildUserPrompt(
     "## Candidate design (JSON)",
     JSON.stringify(design, null, 2),
   ];
+
+  if (problem.track === "agentic") {
+    parts.push(
+      "",
+      "## Agentic interview notes",
+      "Check for: model selection, tools (RAG/web/code), multi-step tool→LLM loops (edges), multi-agent parallelization if needed, and span/e2e evals or traces.",
+      "If evals are missing, prefer a follow-up about span vs e2e measurement and where quality can improve."
+    );
+  } else {
+    parts.push(
+      "",
+      "## Classic interview notes",
+      "Check for: sharding/partition keys, hashing strategies, global/multi-region scale, caching, and failure domains."
+    );
+  }
 
   if (priorFollowUp) {
     parts.push(
@@ -100,7 +116,7 @@ function buildUserPrompt(
 
   parts.push(
     "",
-    "Evaluate this design and return structured scores. If gaps remain, ask one sharp follow-up failure/load question."
+    "Evaluate this design and return structured scores for all five dimensions (including evaluation). If gaps remain, ask one sharp follow-up (failure, scale, tool loop, multi-agent, sharding, or evals / where quality can improve)."
   );
 
   return parts.join("\n");
