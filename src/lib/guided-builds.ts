@@ -2,6 +2,7 @@ import {
   defaultAttributes,
   getComponentByType,
 } from "@/lib/component-catalog";
+import type { FlowScenarioSpec } from "@/lib/flow-types";
 import type { DesignNodeData } from "@/lib/types";
 import type { Edge, Node } from "@xyflow/react";
 import type { TrainingTopic } from "@/lib/training-lessons";
@@ -51,6 +52,8 @@ export interface GuidedBuild {
   /** Final architecture one-liner */
   outcome: string;
   steps: GuidedStep[];
+  /** Optional hand-authored data-flow scenarios (node ids = guided step ids) */
+  flowScenarios?: FlowScenarioSpec[];
 }
 
 export const GUIDED_BUILDS: GuidedBuild[] = [
@@ -63,6 +66,50 @@ export const GUIDED_BUILDS: GuidedBuild[] = [
       "Design a URL shortener: create short links, redirect fast, handle high read QPS.",
     outcome:
       "Read-heavy path is cached; writes go to a durable store; edge reduces latency for redirects.",
+    flowScenarios: [
+      {
+        id: "redirect-cache-hit",
+        name: "Redirect (cache hit)",
+        description: "Hot short code is served from cache — p99 stays low",
+        packetLabel: "GET",
+        packetKind: "request",
+        hops: [
+          { from: "client", to: "lb", caption: "Client sends redirect request" },
+          { from: "lb", to: "app", caption: "LB routes to healthy API replica" },
+          { from: "app", to: "cache", caption: "Lookup short code in cache" },
+        ],
+      },
+      {
+        id: "redirect-cache-miss",
+        name: "Redirect (cache miss)",
+        description: "Cold key: check cache, then load mapping from DB",
+        packetLabel: "GET",
+        packetKind: "request",
+        hops: [
+          { from: "client", to: "lb", caption: "Client sends redirect request" },
+          { from: "lb", to: "app", caption: "LB routes to API" },
+          { from: "app", to: "cache", caption: "Check cache — miss" },
+          {
+            from: "app",
+            to: "db",
+            caption: "Cache miss → load mapping from DB",
+            dwellMs: 500,
+          },
+        ],
+      },
+      {
+        id: "create-link",
+        name: "Create short link",
+        description: "Write path: mint code and persist mapping",
+        packetLabel: "POST",
+        packetKind: "request",
+        hops: [
+          { from: "client", to: "lb", caption: "Client creates a short link" },
+          { from: "lb", to: "app", caption: "API validates URL and mints code" },
+          { from: "app", to: "db", caption: "Persist code → long URL mapping" },
+        ],
+      },
+    ],
     steps: [
       {
         id: "s1",
@@ -204,6 +251,46 @@ export const GUIDED_BUILDS: GuidedBuild[] = [
       "Signup must send welcome email, but the mail provider is slow and sometimes fails forever on bad addresses.",
     outcome:
       "API stays fast; workers absorb load; DLQ holds poison messages for humans/ops.",
+    flowScenarios: [
+      {
+        id: "signup-async",
+        name: "Signup + enqueue email",
+        description: "Sync path writes user; side effect goes to the queue",
+        packetLabel: "POST",
+        packetKind: "request",
+        hops: [
+          { from: "client", to: "api", caption: "Client submits signup" },
+          { from: "api", to: "db", caption: "Insert durable user row" },
+          { from: "api", to: "q", caption: "Enqueue welcome-email job" },
+        ],
+      },
+      {
+        id: "worker-success",
+        name: "Worker processes email",
+        description: "Async consumer pulls job and talks to mail provider",
+        packetLabel: "JOB",
+        packetKind: "event",
+        hops: [
+          { from: "api", to: "q", caption: "Job lands on the queue" },
+          { from: "q", to: "worker", caption: "Worker consumes message" },
+        ],
+      },
+      {
+        id: "poison-dlq",
+        name: "Poison message → DLQ",
+        description: "After N fails, isolate the bad address",
+        packetLabel: "FAIL",
+        packetKind: "error",
+        hops: [
+          { from: "q", to: "worker", caption: "Worker retries bad address" },
+          {
+            from: "worker",
+            to: "dlq",
+            caption: "Retries exhausted → dead-letter queue",
+          },
+        ],
+      },
+    ],
     steps: [
       {
         id: "s1",
@@ -448,6 +535,22 @@ export const GUIDED_BUILDS: GuidedBuild[] = [
       "Support bot must answer from internal docs without inventing policy.",
     outcome:
       "Retrieval grounds the model; traces/evals catch quality regressions.",
+    flowScenarios: [
+      {
+        id: "rag-answer",
+        name: "RAG answer path",
+        description: "Agent retrieves docs, then generates a grounded reply",
+        packetLabel: "CHAT",
+        packetKind: "request",
+        hops: [
+          { from: "client", to: "agent", caption: "User asks a support question" },
+          { from: "agent", to: "rag", caption: "Agent invokes RAG tool" },
+          { from: "rag", to: "vdb", caption: "Top-K similar policy chunks" },
+          { from: "rag", to: "llm", caption: "Tool context returns to model" },
+          { from: "agent", to: "llm", caption: "Generate answer with citations" },
+        ],
+      },
+    ],
     steps: [
       {
         id: "s1",
