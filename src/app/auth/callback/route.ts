@@ -12,6 +12,9 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
+    if (!supabase) {
+      return NextResponse.redirect(`${origin}/?auth_error=1`);
+    }
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       // Vercel / reverse proxy: prefer forwarded host in production
