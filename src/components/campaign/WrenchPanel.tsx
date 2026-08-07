@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Loader2,
   ShieldAlert,
+  Waypoints,
   X,
   Zap,
 } from "lucide-react";
@@ -34,6 +35,8 @@ interface WrenchPanelProps {
   onClose: () => void;
   onSubmitFix: () => void;
   onContinueToMap: () => void;
+  /** Optional: open data-flow playback after pass */
+  onWatchFlow?: () => void;
 }
 
 export function WrenchPanel({
@@ -49,6 +52,7 @@ export function WrenchPanel({
   onClose,
   onSubmitFix,
   onContinueToMap,
+  onWatchFlow,
 }: WrenchPanelProps) {
   if (!open) return null;
 
@@ -103,6 +107,16 @@ export function WrenchPanel({
             </div>
             {fixFeedback ? (
               <p className="text-sm leading-relaxed text-zinc-300">{fixFeedback}</p>
+            ) : null}
+            {onWatchFlow ? (
+              <button
+                type="button"
+                onClick={onWatchFlow}
+                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-sky-500/40 bg-sky-500/15 px-3 py-2.5 text-sm font-semibold text-sky-200 hover:bg-sky-500/25"
+              >
+                <Waypoints className="h-4 w-4" />
+                Watch how traffic would flow
+              </button>
             ) : null}
             <button
               type="button"

@@ -20,17 +20,19 @@ import {
 import "@xyflow/react/dist/style.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Eraser, Loader2, Send, Swords } from "lucide-react";
+import { ArrowLeft, Eraser, Loader2, Send, Swords, Waypoints } from "lucide-react";
 import { ComponentPalette } from "./ComponentPalette";
 import { AttributesPanel } from "./AttributesPanel";
 import { ProblemPanel } from "./ProblemPanel";
 import { EvaluationPanel } from "./EvaluationPanel";
 import { DesignNode } from "./DesignNode";
+import { DataFlowPlayer } from "@/components/flow/DataFlowPlayer";
 import { WrenchPanel } from "@/components/campaign/WrenchPanel";
 import {
   defaultAttributes,
   getComponentByType,
 } from "@/lib/component-catalog";
+import { buildHeuristicScenarios } from "@/lib/flow-scenarios";
 import { serializeDesign } from "@/lib/serialize-design";
 import { getCampaignLevel, markLevelComplete } from "@/lib/campaign";
 import type {
@@ -84,9 +86,17 @@ function DesignWorkspaceInner({ problem, campaignLevelId }: DesignWorkspaceProps
   const [fixFeedback, setFixFeedback] = useState<string | null>(null);
   const [levelPassed, setLevelPassed] = useState(false);
   const [lastScore, setLastScore] = useState(0);
+  const [flowOpen, setFlowOpen] = useState(false);
 
   const totalWrenches = campaignLevel?.wrenchCount ?? 1;
   const passScore = campaignLevel?.passScore ?? 60;
+
+  const flowScenarios = useMemo(
+    () => buildHeuristicScenarios(nodes, edges),
+    [nodes, edges]
+  );
+  const canPlayFlow =
+    nodes.length >= 2 && edges.length >= 1 && flowScenarios.length > 0;
 
   const selectedData = useMemo(() => {
     if (!selectedId) return null;
@@ -434,6 +444,45 @@ function DesignWorkspaceInner({ problem, campaignLevelId }: DesignWorkspaceProps
     return "Submit";
   })();
 
+if (flowOpen) {
+    return (
+      <div className="flex h-dvh flex-col bg-zinc-950 text-zinc-100">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 px-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setFlowOpen(false)}
+              className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-zinc-100"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Exit playback
+            </button>
+            <div className="h-4 w-px bg-white/10" />
+            <div>
+              <p className="text-sm font-semibold">
+                {isCampaign && campaignLevel
+                  ? campaignLevel.mapLabel
+                  : problem.title}
+              </p>
+              <p className="text-[11px] text-sky-400">Data flow playback</p>
+            </div>
+          </div>
+        </header>
+        <div className="min-h-0 flex-1">
+          <DataFlowPlayer
+            nodes={nodes}
+            edges={edges}
+            scenarios={flowScenarios}
+            defaultScenarioId={flowScenarios[0]?.id}
+            autoplay
+            readOnlyGraph
+            onExit={() => setFlowOpen(false)}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-dvh flex-col bg-zinc-950 text-zinc-100">
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 px-4">
@@ -472,6 +521,17 @@ function DesignWorkspaceInner({ problem, campaignLevelId }: DesignWorkspaceProps
             {nodes.length} components · {edges.length} links
             {lastScore > 0 ? ` · last ${lastScore}` : ""}
           </span>
+          {canPlayFlow ? (
+            <button
+              type="button"
+              onClick={() => setFlowOpen(true)}
+              title="Animate request paths on your graph"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-sky-500/40 bg-sky-500/10 px-3 py-1.5 text-sm text-sky-200 hover:bg-sky-500/20"
+            >
+              <Waypoints className="h-3.5 w-3.5" />
+              Play flow
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={clearCanvas}
@@ -566,6 +626,14 @@ function DesignWorkspaceInner({ problem, campaignLevelId }: DesignWorkspaceProps
               onClose={() => setWrenchOpen(false)}
               onSubmitFix={() => void submitWrenchFix()}
               onContinueToMap={() => router.push("/campaign")}
+              onWatchFlow={
+                canPlayFlow
+                  ? () => {
+                      setWrenchOpen(false);
+                      setFlowOpen(true);
+                    }
+                  : undefined
+              }
             />
           ) : (
             <>

@@ -25,9 +25,15 @@ import {
   RotateCcw,
   SkipBack,
   SkipForward,
+  Waypoints,
 } from "lucide-react";
 import { DesignNode } from "@/components/canvas/DesignNode";
-import { graphThroughStep, type GuidedBuild } from "@/lib/guided-builds";
+import { DataFlowPlayer } from "@/components/flow/DataFlowPlayer";
+import {
+  graphThroughStep,
+  type GuidedBuild,
+} from "@/lib/guided-builds";
+import { scenariosForGraph } from "@/lib/flow-scenarios";
 import { TOPIC_META } from "@/lib/training-lessons";
 
 const nodeTypes = { design: DesignNode };
@@ -37,6 +43,7 @@ function GuidedInner({ build }: { build: GuidedBuild }) {
   const [step, setStep] = useState(0);
   const [coachOpen, setCoachOpen] = useState(true);
   const [listOpen, setListOpen] = useState(true);
+  const [flowOpen, setFlowOpen] = useState(false);
 
   const graph = useMemo(() => graphThroughStep(build, step), [build, step]);
   const [nodes, setNodes, onNodesChange] = useNodesState(graph.nodes);
@@ -46,6 +53,21 @@ function GuidedInner({ build }: { build: GuidedBuild }) {
   const isLast = step >= build.steps.length - 1;
   const isFirst = step <= 0;
   const topic = TOPIC_META[build.topic];
+
+  const fullGraph = useMemo(
+    () => graphThroughStep(build, build.steps.length - 1),
+    [build]
+  );
+  const flowScenarios = useMemo(
+    () =>
+      scenariosForGraph(
+        fullGraph.nodes,
+        fullGraph.edges,
+        build.flowScenarios
+      ),
+    [fullGraph, build.flowScenarios]
+  );
+  const canPlayFlow = flowScenarios.length > 0;
 
   useEffect(() => {
     const g = graphThroughStep(build, step);
@@ -62,6 +84,51 @@ function GuidedInner({ build }: { build: GuidedBuild }) {
   );
 
   const reset = () => go(0);
+
+  if (flowOpen) {
+    return (
+      <div className="flex h-dvh flex-col bg-zinc-950 text-zinc-100">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 px-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setFlowOpen(false)}
+              className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-zinc-100"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to build
+            </button>
+            <div className="h-4 w-px bg-white/10" />
+            <div>
+              <p className="text-sm font-semibold">{build.title}</p>
+              <p className="text-[11px] text-emerald-400">
+                Completed system · data flow
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/training"
+            className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-3 py-1.5 text-xs font-medium text-emerald-300 hover:bg-emerald-500/25"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            Finish
+          </Link>
+        </header>
+        <div className="min-h-0 flex-1">
+          <DataFlowPlayer
+            nodes={fullGraph.nodes}
+            edges={fullGraph.edges}
+            scenarios={flowScenarios}
+            defaultScenarioId={flowScenarios[0]?.id}
+            autoplay
+            readOnlyGraph
+            badge="Completed system"
+            onExit={() => setFlowOpen(false)}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-dvh flex-col bg-zinc-950 text-zinc-100">
@@ -86,6 +153,16 @@ function GuidedInner({ build }: { build: GuidedBuild }) {
           <span className="rounded-full border border-white/10 bg-zinc-900 px-3 py-1 text-xs text-zinc-400">
             Step {step + 1}/{build.steps.length}
           </span>
+          {isLast && canPlayFlow ? (
+            <button
+              type="button"
+              onClick={() => setFlowOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-sky-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-sky-500"
+            >
+              <Waypoints className="h-3.5 w-3.5" />
+              Play data flow
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={reset}
@@ -198,6 +275,16 @@ function GuidedInner({ build }: { build: GuidedBuild }) {
               {isLast ? "Done" : "Next step"}
               <SkipForward className="h-3.5 w-3.5" />
             </button>
+            {isLast && canPlayFlow ? (
+              <button
+                type="button"
+                onClick={() => setFlowOpen(true)}
+                className="inline-flex items-center gap-1 rounded-lg border border-sky-500/40 bg-sky-500/15 px-3 py-2 text-xs font-medium text-sky-200 hover:bg-sky-500/25"
+              >
+                <Waypoints className="h-3.5 w-3.5" />
+                Play data flow
+              </button>
+            ) : null}
             {isLast ? (
               <Link
                 href="/training"
@@ -300,11 +387,21 @@ function GuidedInner({ build }: { build: GuidedBuild }) {
                 )}
 
                 {isLast ? (
-                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2.5">
+                  <div className="space-y-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2.5">
                     <p className="font-semibold text-emerald-300">Architecture complete</p>
-                    <p className="mt-1 leading-relaxed text-emerald-100/90">
+                    <p className="leading-relaxed text-emerald-100/90">
                       {build.outcome}
                     </p>
+                    {canPlayFlow ? (
+                      <button
+                        type="button"
+                        onClick={() => setFlowOpen(true)}
+                        className="mt-1 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-sky-600 py-2 text-xs font-semibold text-white hover:bg-sky-500"
+                      >
+                        <Waypoints className="h-3.5 w-3.5" />
+                        Play data flow
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
 

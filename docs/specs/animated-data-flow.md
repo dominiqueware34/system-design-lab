@@ -1,6 +1,6 @@
 # Spec: Animated Data-Flow Playback
 
-**Status:** Draft  
+**Status:** P0/P1 implemented (2026-08) — `DataFlowPlayer`, hand-authored guided scenarios, heuristic free-design paths, guided + design + campaign pass hooks. P3 (LLM scenarios, parallel packets) out of scope.  
 **Owner:** Product / Frontend  
 **Depends on:** Canvas graph (`nodes` + `edges`), guided builds, free practice / campaign submit  
 **Related:** Training “Show me how”, campaign complete, free-design evaluation  
