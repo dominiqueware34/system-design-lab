@@ -132,6 +132,44 @@ export interface EvaluationResult {
   isComplete: boolean;
 }
 
+
+export type CampaignPhase =
+  | "design"
+  | "wrench"
+  | "fixing"
+  | "passed"
+  | "failed";
+
+export interface CampaignLevelNode {
+  id: string;
+  /** References DesignProblem.id */
+  problemId: string;
+  /** Display name on the map (can differ slightly) */
+  mapLabel: string;
+  /** World / chapter grouping */
+  world: number;
+  worldName: string;
+  /** Position on the campaign map (0–100 percent) */
+  x: number;
+  y: number;
+  /** Level numbers that must be cleared first (campaign level ids) */
+  unlocksAfter: string[];
+  /** How many wrenches before a pass is allowed (1–2) */
+  wrenchCount: number;
+  /** Min overall score to pass after final fix */
+  passScore: number;
+  flavor?: string;
+}
+
+export interface CampaignProgress {
+  completedLevelIds: string[];
+  /** stars 0–3 per level */
+  stars: Record<string, number>;
+  /** total wrenches survived */
+  wrenchesSurvived: number;
+  lastPlayedLevelId?: string;
+}
+
 export interface ChatMessage {
   role: "assistant" | "user" | "system";
   content: string;
