@@ -111,9 +111,13 @@ export function EvaluationPanel({
 
             <div className="grid grid-cols-2 gap-3">
               <ScoreBar label="Latency" score={evaluation.dimensions.latency.score} />
-              <ScoreBar label="Redundancy" score={evaluation.dimensions.redundancy.score} />
+              <ScoreBar label="Reliability" score={evaluation.dimensions.reliability.score} />
               <ScoreBar label="Scale" score={evaluation.dimensions.scale.score} />
               <ScoreBar label="Correctness" score={evaluation.dimensions.correctness.score} />
+              <ScoreBar
+                label="Evals / measurement"
+                score={evaluation.dimensions.evaluation.score}
+              />
             </div>
 
             {evaluation.strengths.length > 0 ? (
@@ -142,6 +146,9 @@ export function EvaluationPanel({
               <section className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-3">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-400">
                   Interviewer challenge
+                  {(activeFollowUp ?? evaluation.followUp)?.kind
+                    ? ` · ${(activeFollowUp ?? evaluation.followUp)!.kind}`
+                    : ""}
                 </p>
                 <p className="mt-1 text-sm font-medium text-zinc-100">
                   {(activeFollowUp ?? evaluation.followUp)!.question}

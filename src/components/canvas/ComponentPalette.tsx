@@ -11,7 +11,7 @@ import type { ComponentDefinition } from "@/lib/types";
 
 export function ComponentPalette() {
   const [query, setQuery] = useState("");
-  const [openCategory, setOpenCategory] = useState<string | null>("edge");
+  const [openCategory, setOpenCategory] = useState<string | null>("agent");
 
   const grouped = useMemo(() => {
     const q = query.trim().toLowerCase();

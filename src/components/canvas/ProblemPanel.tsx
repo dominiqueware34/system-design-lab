@@ -3,11 +3,12 @@
 import { useState } from "react";
 import type { DesignProblem } from "@/lib/types";
 import { ChevronDown, ChevronUp, Target } from "lucide-react";
-import { DIFFICULTY_META } from "@/lib/problems";
+import { DIFFICULTY_META, TRACK_META } from "@/lib/problems";
 
 export function ProblemPanel({ problem }: { problem: DesignProblem }) {
   const [expanded, setExpanded] = useState(true);
   const meta = DIFFICULTY_META[problem.difficulty];
+  const track = TRACK_META[problem.track];
 
   return (
     <div className="absolute left-3 top-3 z-10 w-80 max-w-[calc(100%-1.5rem)] overflow-hidden rounded-xl border border-white/10 bg-zinc-950/90 shadow-2xl backdrop-blur-md">
@@ -17,10 +18,15 @@ export function ProblemPanel({ problem }: { problem: DesignProblem }) {
         className="flex w-full items-start justify-between gap-2 p-3 text-left"
       >
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Target className="h-3.5 w-3.5 text-sky-400" />
             <span className={`text-[11px] font-semibold uppercase tracking-wide ${meta.color}`}>
               {meta.label}
+            </span>
+            <span
+              className={`rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${track.badge}`}
+            >
+              {track.label}
             </span>
           </div>
           <h1 className="mt-1 text-sm font-semibold text-zinc-50">{problem.title}</h1>

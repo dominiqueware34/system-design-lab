@@ -10,7 +10,7 @@ export const evaluationSchema = z.object({
       score: z.number().min(0).max(100),
       feedback: z.string(),
     }),
-    redundancy: z.object({
+    reliability: z.object({
       score: z.number().min(0).max(100),
       feedback: z.string(),
     }),
@@ -22,19 +22,30 @@ export const evaluationSchema = z.object({
       score: z.number().min(0).max(100),
       feedback: z.string(),
     }),
+    evaluation: z.object({
+      score: z.number().min(0).max(100),
+      feedback: z
+        .string()
+        .describe(
+          "How well they plan to measure quality: SLOs, span evals, e2e evals, traces"
+        ),
+    }),
   }),
   followUp: z
     .object({
       question: z
         .string()
-        .describe("Socratic interviewer question about a gap or failure mode"),
-      failureScenario: z.string().describe("Concrete failure or load scenario"),
+        .describe("Socratic interviewer question about a gap, failure, scale, or evals"),
+      failureScenario: z.string().describe("Concrete risk, load, or quality-measurement gap"),
       expectedFixHints: z
         .array(z.string())
         .describe("What a good remediation might include"),
       relatedComponentTypes: z
         .array(z.string())
         .describe("Catalog component type ids that could help"),
+      kind: z
+        .string()
+        .describe("failure | scale | latency | evals | tool_loop | multi_agent | sharding | other"),
     })
     .nullable()
     .describe("Null if design is complete enough for this difficulty"),

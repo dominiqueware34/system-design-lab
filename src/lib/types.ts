@@ -1,5 +1,8 @@
 export type Difficulty = "easy" | "medium" | "hard";
 
+/** Classic infra vs agentic AI workflow design */
+export type ProblemTrack = "classic" | "agentic";
+
 export type ComponentCategory =
   | "client"
   | "edge"
@@ -8,7 +11,12 @@ export type ComponentCategory =
   | "messaging"
   | "security"
   | "observability"
-  | "storage";
+  | "storage"
+  | "agent"
+  | "tools"
+  | "memory"
+  | "orchestration"
+  | "evals";
 
 export type AttributeField =
   | {
@@ -90,6 +98,8 @@ export interface DesignConstraints {
   readWriteRatio?: string;
   consistency?: string;
   budget?: string;
+  tokenBudget?: string;
+  maxSteps?: string;
   other?: string[];
 }
 
@@ -97,6 +107,7 @@ export interface DesignProblem {
   id: string;
   title: string;
   difficulty: Difficulty;
+  track: ProblemTrack;
   summary: string;
   description: string;
   requirements: string[];
@@ -115,6 +126,7 @@ export interface FollowUpChallenge {
   failureScenario: string;
   expectedFixHints: string[];
   relatedComponentTypes: string[];
+  kind?: string;
 }
 
 export interface EvaluationResult {
@@ -124,14 +136,43 @@ export interface EvaluationResult {
   gaps: string[];
   dimensions: {
     latency: DimensionScore;
-    redundancy: DimensionScore;
+    reliability: DimensionScore;
     scale: DimensionScore;
     correctness: DimensionScore;
+    evaluation: DimensionScore;
   };
   followUp: FollowUpChallenge | null;
   isComplete: boolean;
 }
 
+/** Dynamic chaos event thrown at the player's design */
+export type WrenchCategory =
+  | "latency"
+  | "security"
+  | "capacity"
+  | "failure"
+  | "cost"
+  | "data"
+  | "evals"
+  | "agent";
+
+export interface DesignWrench {
+  id: string;
+  title: string;
+  /** Short map/banner flavor */
+  headline: string;
+  category: WrenchCategory;
+  severity: 1 | 2 | 3;
+  /** Story of what just happened in production */
+  narrative: string;
+  /** Concrete impact metrics / symptoms */
+  impact: string;
+  /** Why this hits *their* design specifically */
+  whyThisDesign: string;
+  challengeQuestion: string;
+  expectedFixHints: string[];
+  relatedComponentTypes: string[];
+}
 
 export type CampaignPhase =
   | "design"
