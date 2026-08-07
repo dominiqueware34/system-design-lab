@@ -1,9 +1,14 @@
 # Spec: User Logins (Google OAuth)
 
-**Status:** Draft  
+**Status:** P0–P2 implemented (Supabase) — see `docs/setup-auth.md`  
 **Owner:** Product / Full-stack  
-**Auth provider:** Google only (v1)  
+**Auth provider:** Google only (v1) via **Supabase Auth** (not Auth.js/Clerk)  
 **App:** System Design Lab (Next.js App Router)
+
+> **Implementation note (2026):** Shipped on `@supabase/ssr` + `/auth/callback` PKCE.
+> Progress tables: `supabase/migrations/20260327120000_progress_tables.sql`.
+> APIs: `/api/progress/campaign|training|merge`. UI: `AuthHeader`, soft prompts.
+> P3 (rate-limit AI by userId) remains out of scope.
 
 ---
 

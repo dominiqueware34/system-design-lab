@@ -1150,11 +1150,24 @@ export function saveTrainingProgress(progress: TrainingProgress): void {
 
 export function markLessonComplete(lessonId: string): TrainingProgress {
   const p = loadTrainingProgress();
+  const wasEmpty = p.completedLessonIds.length === 0;
   if (!p.completedLessonIds.includes(lessonId)) {
     p.completedLessonIds.push(lessonId);
   }
   p.lastLessonId = lessonId;
   saveTrainingProgress(p);
+
+  void import("@/lib/progress-sync").then(({ pushTrainingProgress }) => {
+    pushTrainingProgress(p);
+  });
+  if (wasEmpty) {
+    void import("@/components/auth/SignInPrompt").then(
+      ({ maybeQueueSignInAfterComplete }) => {
+        maybeQueueSignInAfterComplete();
+      }
+    );
+  }
+
   return p;
 }
 

@@ -40,6 +40,9 @@ export default function TrainingIndexPage() {
 
   useEffect(() => {
     setProgress(loadTrainingProgress());
+    const onSync = () => setProgress(loadTrainingProgress());
+    window.addEventListener("sdl:progress-synced", onSync);
+    return () => window.removeEventListener("sdl:progress-synced", onSync);
   }, []);
 
   const completed = useMemo(

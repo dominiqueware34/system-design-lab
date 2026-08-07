@@ -249,6 +249,7 @@ export function loadProgress(): CampaignProgress {
   }
 }
 
+/** Always writes localStorage (offline cache). Server sync is opt-in via push helpers. */
 export function saveProgress(progress: CampaignProgress): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
@@ -276,6 +277,7 @@ export function markLevelComplete(
   wrenchesThisLevel: number
 ): CampaignProgress {
   const progress = loadProgress();
+  const wasEmpty = progress.completedLevelIds.length === 0;
   if (!progress.completedLevelIds.includes(levelId)) {
     progress.completedLevelIds.push(levelId);
   }
@@ -287,6 +289,19 @@ export function markLevelComplete(
   progress.wrenchesSurvived += wrenchesThisLevel;
   progress.lastPlayedLevelId = levelId;
   saveProgress(progress);
+
+  // Signed-in: fire-and-forget server write (keeps offline path intact)
+  void import("@/lib/progress-sync").then(({ pushCampaignProgress }) => {
+    pushCampaignProgress(progress);
+  });
+  if (wasEmpty) {
+    void import("@/components/auth/SignInPrompt").then(
+      ({ maybeQueueSignInAfterComplete }) => {
+        maybeQueueSignInAfterComplete();
+      }
+    );
+  }
+
   return progress;
 }
 

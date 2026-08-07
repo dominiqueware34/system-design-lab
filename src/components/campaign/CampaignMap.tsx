@@ -14,6 +14,7 @@ import {
 import type { CampaignLevelNode, CampaignProgress } from "@/lib/types";
 import { getProblemById } from "@/lib/problems";
 import { Lock, Map as MapIcon, Star, Swords, Trophy } from "lucide-react";
+import { SoftSignInHint } from "@/components/auth/SignInPrompt";
 
 function nodeById(id: string): CampaignLevelNode | undefined {
   return CAMPAIGN_LEVELS.find((l) => l.id === id);
@@ -30,12 +31,15 @@ export function CampaignMap() {
   const [progress, setProgress] = useState<CampaignProgress | null>(null);
   const [selected, setSelected] = useState<CampaignLevelNode | null>(null);
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     setProgress(loadProgress());
   }, []);
 
-  const refresh = useCallback(() => {
+  useEffect(() => {
     setProgress(loadProgress());
+    const onSync = () => setProgress(loadProgress());
+    window.addEventListener("sdl:progress-synced", onSync);
+    return () => window.removeEventListener("sdl:progress-synced", onSync);
   }, []);
 
   const completed = progress?.completedLevelIds.length ?? 0;
@@ -79,6 +83,7 @@ export function CampaignMap() {
             <span className="text-zinc-200">wrench</span> — latency spikes, security holes,
             DB overflows, agent failures — you must fix it to unlock the next node.
           </p>
+          <SoftSignInHint className="mt-3 max-w-xl" />
         </div>
         <div className="flex gap-3 text-sm">
           <Stat icon={Trophy} label="Cleared" value={`${completed}/${total}`} />

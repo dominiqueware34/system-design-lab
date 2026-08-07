@@ -1,36 +1,37 @@
 import { createServerClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { getSupabasePublicConfig } from "@/lib/supabase/env";
 
-export async function createClient() {
+export async function createClient(): Promise<SupabaseClient | null> {
+  const config = getSupabasePublicConfig();
+  if (!config) return null;
+
   const cookieStore = await cookies();
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet, _headers) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Server Component cannot always write cookies.
-            // Proxy is responsible for refreshing the session.
-          }
-        },
+  return createServerClient(config.url, config.key, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
       },
-    }
-  );
+      setAll(cookiesToSet, _headers) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            cookieStore.set(name, value, options)
+          );
+        } catch {
+          // Server Component cannot always write cookies.
+          // Proxy is responsible for refreshing the session.
+        }
+      },
+    },
+  });
 }
 
 /** Claims for lightweight auth checks (JWT validated). */
 export async function getOptionalClaims() {
   const supabase = await createClient();
+  if (!supabase) return null;
   const { data } = await supabase.auth.getClaims();
   return data?.claims ?? null;
 }
@@ -38,6 +39,7 @@ export async function getOptionalClaims() {
 /** Fresh user record from Auth server when needed. */
 export async function getOptionalUser() {
   const supabase = await createClient();
+  if (!supabase) return null;
   const {
     data: { user },
   } = await supabase.auth.getUser();
