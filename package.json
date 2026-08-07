@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@ai-sdk/xai": "^4.0.29",
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.112.2",
     "@xyflow/react": "^12.11.2",
     "ai": "^7.0.54",
     "lucide-react": "^1.28.0",
