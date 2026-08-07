@@ -3,7 +3,7 @@
 **Budget:** ≤ $200 Instagram + ≤ $200 X ($400 total paid)  
 **Goal:** Early users, waitlist signups, qualified traffic (engineers prepping system design interviews)  
 **Style:** Organic-first, tiny paid boost, gameplay-forward creative  
-**Product:** Browser game for system design (distributed systems + agentic AI) — campaign map, drag-and-drop architecture canvas, AI “wrench” production incidents  
+**Product:** Browser game for system design (classic distributed systems + agentic AI) — Zelda-style `/campaign` map with flavored world/level names, drag-and-drop canvas, AI “wrench” incidents in campaign flow, free practice with Agentic/Classic track filter, `/training` hub (guided builds + lessons). Auth (Supabase) is scaffolding only — do not advertise “login with Google” as live until verified.  
 **Video production answer:** see §0 and companion [`gameplay-video-brief.md`](./gameplay-video-brief.md)
 
 ---
@@ -14,7 +14,7 @@
 
 | Path | What it is | Best for |
 |------|------------|----------|
-| **A. Screen-record real product (recommended)** | Record from `npm run dev` (campaign map → drag components → throw wrench → fix) | Ads, Reels, authenticity, trust |
+| **A. Screen-record real product (recommended)** | Record from `npm run dev` (`/campaign` map → design → **Deploy — throw wrench** → fix) | Ads, Reels, authenticity, trust |
 | **B. Stylized AI trailer clips** | Mockups + tools like Imagine / `image_to_video` | Teasers, hype, placeholders while product UI iterates |
 
 **Use A for paid IG ads that “show gameplay.”** UGC-style screen capture + captions outperforms polished brand film for learning tools. Use B only as optional cutaways or pre-launch atmosphere.
@@ -33,7 +33,7 @@ Full shot list, hooks, and export specs → [`gameplay-video-brief.md`](./gamepl
 ## 1. Positioning
 
 **One-liner:**  
-> System Design Lab is a Zelda-style browser game where you design real architectures, survive AI production incidents, and get interview-ready — without another dry whiteboard PDF.
+> System Design Lab is a Zelda-style browser game — worlds like The Threshold and Agentic Frontier, a design canvas, AI production wrenches, and training that shows you how — without another dry whiteboard PDF.
 
 **3 hooks (reuse on posts + ads):**
 1. **Interview anxiety:** “Whiteboard system design still makes you freeze? Play it instead.”
@@ -69,9 +69,9 @@ Full shot list, hooks, and export specs → [`gameplay-video-brief.md`](./gamepl
 
 | Day | Instagram | X / Twitter |
 |-----|-----------|-------------|
-| **Mon** | **Reel (15s):** Campaign map pan → pick URL Shortener. Hook: “System design as a game map.” CTA: link in bio / waitlist. | **Post + 15s video:** Same clip. Text: “What if system design interviews were a campaign map instead of a blank whiteboard?” |
+| **Mon** | **Reel (15s):** `/campaign` map pan → select flavored node (e.g. **Tiny Links** in *The Threshold*). Hook: “System design as a game map.” CTA: link in bio / waitlist. | **Post + 15s video:** Same clip. Text: “What if system design interviews were a campaign map instead of a blank whiteboard?” |
 | **Tue** | **Carousel (5 slides):** Problem → drag palette → connect → submit → score. Caption: “How a round works in 5 frames.” | **Thread (4 tweets):** Same 5-step loop. End with waitlist link. |
-| **Wed** | **Reel (12s):** Wrench incident hit mid-design. Hook: “POV: production just broke your happy path.” | **Post:** Screen of failure mode question from AI. “This is the part textbooks skip.” |
+| **Wed** | **Reel (12s):** Campaign canvas → **Deploy — throw wrench** → incident panel. Hook: “POV: production just broke your happy path.” | **Post:** Screen of failure mode question from AI. “This is the part textbooks skip.” |
 | **Thu** | **Story series:** Poll “Hardest design topic?” + sticker link. | **Reply/engage hour:** 20 min on #systemdesign / interview posts; no spam links. |
 | **Fri** | **Reel (20s):** Full micro-loop: drag LB + cache → wrench → fix → green. CTA waitlist. | **Quote-style post:** “Studying system design ≠ watching 3h videos. It’s reps.” + clip. |
 
@@ -82,7 +82,7 @@ Full shot list, hooks, and export specs → [`gameplay-video-brief.md`](./gamepl
 | **Mon** | **Reel:** Side-by-side “whiteboard panic vs. canvas play” (text overlay). | **Post:** “We’re building an interview game, not another course. Early access: [link]” |
 | **Tue** | **Carousel:** 3 tradeoffs (cache vs DB, queue vs sync) as in-game choices. | **Thread:** One problem (e.g. chat system) broken into game decisions. |
 | **Wed** | **Reel UGC-style:** Founder face cam 3s + gameplay 12s. “Why I built this.” | **Post:** Shipping update / bug that taught a design lesson. |
-| **Thu** | **Story:** Behind-the-scenes recording session + countdown to paid boost. | **Engage:** Quote interesting system-design takes; soft mention product once. |
+| **Thu** | **Story or short Reel:** `/training` guided build — one node appears with “why it’s there.” Soft CTA. | **Engage:** Quote interesting system-design takes; soft mention product once. Optional: “Show me how” training clip. |
 | **Fri** | **Reel (best performer remixed)** + strong waitlist CTA. Boost this if organic saves/shares look good. | **Promote best organic post** with $ from X budget (see §4). |
 
 **Organic tips (2025–26):**
@@ -163,7 +163,7 @@ Day 14     Write one-page learnings; decide next $400 or pause
 |-------|------|
 | **Length** | 10–12s |
 | **Hook** | “Stop grinding another 40-page system design PDF.” |
-| **Body** | Pan Zelda-style campaign map → select node “URL Shortener” → canvas opens. |
+| **Body** | Pan Zelda-style `/campaign` map (world labels visible) → select **Tiny Links** (*The Threshold*) → canvas opens. |
 | **Payoff** | Palette of components sliding in; satisfying drop of load balancer. |
 | **CTA** | “Learn by building. Join waitlist.” |
 | **Primary text** | System Design Lab: interview practice that feels like a campaign, not homework. |
@@ -173,7 +173,7 @@ Day 14     Write one-page learnings; decide next $400 or pause
 |-------|------|
 | **Length** | 15–18s |
 | **Hook** | Face or text POV: “Design round in 48 hours and you’ve only watched videos.” |
-| **Body** | Fast montage: 3 problems (easy → medium), drag, connect, AI question popup. |
+| **Body** | Fast montage: home track filter (Agentic / Classic) → 2–3 problems by difficulty → drag, connect, AI question popup. |
 | **Payoff** | Text: “Reps > passive watching.” |
 | **CTA** | Waitlist / try the lab. |
 | **Primary text** | Built for bootcamp grads, mid-level SWEs, and switchers prepping design interviews. |
@@ -195,10 +195,10 @@ Day 14     Write one-page learnings; decide next $400 or pause
 > Early access: [utm link]
 
 #### X-3 — Specific problem demo
-> Challenge: Design a URL shortener under 10k read QPS.  
-> In System Design Lab you drop the components, wire the path, then the AI throws the question you’d get in a real loop.  
+> Challenge: Design a URL shortener (map node: **Tiny Links**).  
+> In System Design Lab you drop the components, wire the path, then **Deploy — throw wrench** for a live incident — or free-practice with Agentic/Classic tracks on home.  
 > Clip ↓ + waitlist [utm link]  
-> *[Attach 20–30s URL shortener build]*
+> *[Attach 20–30s Tiny Links / URL shortener build]*
 
 ---
 

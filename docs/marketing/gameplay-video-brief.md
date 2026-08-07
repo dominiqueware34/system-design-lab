@@ -23,6 +23,7 @@ Companion to [`instagram-twitter-campaign.md`](./instagram-twitter-campaign.md).
 ```bash
 npm run dev
 # Open app full-screen; hide bookmark bar; use dark/default product theme consistently
+# Key routes: / (home + Agentic|Classic filter), /campaign (map), /training (guided builds), /design/[problemId]
 ```
 
 | Setting | Spec |
@@ -44,16 +45,17 @@ Record each as a separate take. Prefer **one clear action per clip**.
 
 | # | Clip name | Duration target | On-screen action | Hook text overlay | Use |
 |---|-----------|-----------------|------------------|-------------------|-----|
-| **1** | **Campaign map pan** | 8–12s raw → 6–10s cut | Zelda-style map; pan; hover/select a node (e.g. URL Shortener) | “System design as a campaign map” | IG-R2, organic Mon W1 |
-| **2** | **Drag-drop architecture** | 15–25s raw → 10–15s | Open canvas; drag Load Balancer, Cache, DB; connect edges | “Drag the boxes. Wire the system.” | IG-R2/R3, X-3 |
-| **3** | **Wrench incident** | 12–20s | Mid-design: wrench/incident hits; failure-mode UI; scramble fix | “Prod just broke your design” | **IG-R1 hero**, X-1 |
-| **4** | **Fix + resubmit** | 10–15s | Add redundancy/queue; Submit fix; improved score / resolved state | “Fix it. Re-submit. Learn.” | IG-R1 end, organic Fri |
-| **5** | **AI interviewer beat** | 10–15s | Evaluation panel / Socratic question appears (latency, scale) | “Not multiple choice — real tradeoffs” | Organic Wed, X-2 support |
-| **6** | **Problem picker** | 8–12s | Easy / medium / hard list; pick Chat or Rate Limiter | “Pick your boss fight” | IG-R3 montage |
+| **1** | **Campaign map pan** | 8–12s raw → 6–10s cut | `/campaign` Zelda-style map; pan worlds (e.g. *The Threshold*); hover/select flavored node (**Tiny Links**, not generic-only labels) | “System design as a campaign map” | IG-R2, organic Mon W1 |
+| **2** | **Drag-drop architecture** | 15–25s raw → 10–15s | Open canvas from campaign or free practice; drag Load Balancer, Cache, DB; connect edges | “Drag the boxes. Wire the system.” | IG-R2/R3, X-3 |
+| **3** | **Wrench incident** | 12–20s | Campaign flow: click **Deploy — throw wrench**; WrenchPanel / failure-mode UI; scramble fix | “Prod just broke your design” | **IG-R1 hero**, X-1 |
+| **4** | **Fix + resubmit** | 10–15s | Add redundancy/queue; **Submit wrench fix**; resolved / next-wrench or path unlock beat | “Fix it. Re-submit. Learn.” | IG-R1 end, organic Fri |
+| **5** | **AI interviewer beat** | 10–15s | Free practice **Submit** → evaluation panel / Socratic question (latency, scale, evals) | “Not multiple choice — real tradeoffs” | Organic Wed, X-2 support |
+| **6** | **Problem picker** | 8–12s | Home: **Agentic / Classic** track filter + easy/medium/hard; pick e.g. Chat or Rate Limiter | “Pick your boss fight” | IG-R3 montage |
 | **7** | **Satisfying component drop** | 5–8s | Single crisp drop of a key component + connect | (SFX-forward, minimal text) | Transitions, Stories |
 | **8** *(optional)* | **Founder + game** | 15–20s | 3s face cam “I built a game for system design interviews” → gameplay | Same as spoken | Organic W2, trust |
+| **9** *(optional)* | **Training guided build** | 10–15s | `/training` → guided build: nodes appear step-by-step with “why” copy | “Show me how — then play” | Organic Thu W2, Stories |
 
-**Minimum viable set for launch ads:** clips **1, 2, 3, 4** (map → build → wrench → fix).
+**Minimum viable set for launch ads:** clips **1, 2, 3, 4** (map → build → wrench → fix). Clip **9** is organic/training only — not required for paid.
 
 ---
 
