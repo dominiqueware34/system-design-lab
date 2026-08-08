@@ -32,32 +32,34 @@ export default function HomePage() {
         <header className="mb-10">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-300">
             <Sparkles className="h-3.5 w-3.5" />
-            SpaceXAI · classic systems + agentic workflows
+            System design teaching game · SpaceXAI
           </div>
           <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-            Design systems.
-            <span className="block text-zinc-400">Survive the campaign.</span>
+            Learn system design.
+            <span className="block text-zinc-400">Then compete in the campaign.</span>
           </h1>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-zinc-400">
-            Walk a Zelda-style map of levels. Deploy your architecture — the AI throws a{" "}
-            <span className="text-zinc-200">wrench</span> (latency, security, DB overflow,
-            agent failure). Fix it or the path stays locked. Or free-practice any problem
-            below.
+            Train on a real architecture canvas—load balancers, caches, queues, databases.
+            When you&apos;re ready, enter the{" "}
+            <span className="text-zinc-200">campaign</span>: clear levels, survive AI{" "}
+            <span className="text-zinc-200">wrenches</span>, and chase high scores.{" "}
+            <span className="text-zinc-200">SpaceXAI</span> is both interviewer and chaos
+            engine.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/training"
+              className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white hover:bg-sky-500"
+            >
+              Learn · training
+              <ArrowRight className="h-4 w-4" />
+            </Link>
             <Link
               href="/campaign"
               className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-900/30 hover:bg-rose-500"
             >
               Play campaign
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/training"
-              className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white hover:bg-sky-500"
-            >
-              Training · show me how
             </Link>
             <a
               href="#practice"
@@ -71,18 +73,18 @@ export default function HomePage() {
             {[
               {
                 icon: Bot,
-                title: "Training mode",
-                body: "Bare-bones systems + SVG tips. Learn cache, DLQ, RAG, when keywords mean which tool.",
+                title: "Learn",
+                body: "Training + guided builds for the building blocks of real system design.",
               },
               {
                 icon: Layers,
-                title: "Campaign + practice",
-                body: "Map levels with AI wrenches, or free-design classic and agentic problems.",
+                title: "Practice",
+                body: "Full canvas problems. SpaceXAI scores scale, bottlenecks, and failure modes.",
               },
               {
                 icon: Target,
-                title: "Socratic follow-ups",
-                body: "Miss redundancy or evals? The interviewer asks where to improve.",
+                title: "Compete",
+                body: "Campaign levels, wrenches, stars. Future: 3-day seasons for highest scores.",
               },
             ].map(({ icon: Icon, title, body }) => (
               <div

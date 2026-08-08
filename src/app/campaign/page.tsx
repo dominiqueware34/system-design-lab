@@ -4,7 +4,8 @@ import { ArrowLeft } from "lucide-react";
 
 export const metadata = {
   title: "Campaign · System Design Lab",
-  description: "Progressive system design campaign — survive AI chaos wrenches.",
+  description:
+    "Campaign mode: play system design levels, survive AI wrenches, unlock the map. Compete for scores—seasons coming later.",
 };
 
 export default function CampaignPage() {
