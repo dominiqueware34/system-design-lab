@@ -15,21 +15,22 @@ Last updated: 2026-08-08
 
 SHIPPED (summary — full detail in FEATURES.md)
   [x] System design canvas + 16 problems + component catalog
-  [x] SpaceXAI evaluate API (scale / failure modes)
-  [x] Campaign path of design levels + incident drills
-  [x] Training lessons + guided builds
+  [x] SpaceXAI evaluate API (scores + Socratic interview)
+  [x] Campaign map + wrenches + unlocks (solo progress game)
+  [x] Training lessons + guided builds (learn loop)
   [x] Animated data-flow playback (P0/P1)
   [x] Supabase Google auth + progress sync
   [x] Marketing docs (IG/X + video brief)
 
 IN FLIGHT
-  [~] Positioning: system-design-first copy (product + home + brain)
-      branch:  docs/application-brain (or follow-up on main)
+  [~] Positioning: teaching game = learn + campaign compete
+      branch:  docs/application-brain
       worktree: system-design-lab
-      next:     commit positioning tweak on feature branch / PR
+      next:     commit + push PR #8
 
 PLANNED (not started — pick one, open a feature branch)
-  [ ] (none registered — add a row when you plan the next feature)
+  [ ] 3-day campaign seasons + highest-score competition / leaderboards
+      note: vision only — needs auth, score integrity, event windows
 
 BLOCKED
   (none)

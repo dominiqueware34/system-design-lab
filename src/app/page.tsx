@@ -32,57 +32,59 @@ export default function HomePage() {
         <header className="mb-10">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-300">
             <Sparkles className="h-3.5 w-3.5" />
-            System design practice · SpaceXAI interviewer
+            System design teaching game · SpaceXAI
           </div>
           <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-            Practice system design.
-            <span className="block text-zinc-400">On a real canvas.</span>
+            Learn system design.
+            <span className="block text-zinc-400">Then compete in the campaign.</span>
           </h1>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-zinc-400">
-            Build architectures with load balancers, caches, queues, and databases.{" "}
-            <span className="text-zinc-200">SpaceXAI</span> scores tradeoffs and probes
-            failure modes—like a mock interview. Work free-practice problems below, train
-            building blocks, or progress through the campaign path.
+            Train on a real architecture canvas—load balancers, caches, queues, databases.
+            When you&apos;re ready, enter the{" "}
+            <span className="text-zinc-200">campaign</span>: clear levels, survive AI{" "}
+            <span className="text-zinc-200">wrenches</span>, and chase high scores.{" "}
+            <span className="text-zinc-200">SpaceXAI</span> is both interviewer and chaos
+            engine.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <a
-              href="#practice"
-              className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 hover:bg-violet-500"
-            >
-              Free practice
-              <ArrowRight className="h-4 w-4" />
-            </a>
             <Link
               href="/training"
               className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white hover:bg-sky-500"
             >
-              Training · building blocks
+              Learn · training
+              <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               href="/campaign"
+              className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-900/30 hover:bg-rose-500"
+            >
+              Play campaign
+            </Link>
+            <a
+              href="#practice"
               className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-5 py-3 text-sm font-medium text-zinc-300 hover:bg-white/5"
             >
-              Campaign path
-            </Link>
+              Free practice
+            </a>
           </div>
 
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
             {[
               {
+                icon: Bot,
+                title: "Learn",
+                body: "Training + guided builds for the building blocks of real system design.",
+              },
+              {
                 icon: Layers,
-                title: "Design on a canvas",
-                body: "Classic system design components—wire real topologies, not bullets on a slide.",
+                title: "Practice",
+                body: "Full canvas problems. SpaceXAI scores scale, bottlenecks, and failure modes.",
               },
               {
                 icon: Target,
-                title: "AI design interview",
-                body: "SpaceXAI scores scale, bottlenecks, and failure modes with Socratic follow-ups.",
-              },
-              {
-                icon: Bot,
-                title: "Train, then campaign",
-                body: "Learn building blocks, then progress levels—harden designs under incident pressure.",
+                title: "Compete",
+                body: "Campaign levels, wrenches, stars. Future: 3-day seasons for highest scores.",
               },
             ].map(({ icon: Icon, title, body }) => (
               <div

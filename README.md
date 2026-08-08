@@ -1,10 +1,11 @@
 # System Design Lab
 
-Hands-on **system design** practice: build architectures on a drag-and-drop canvas (load balancers, caches, queues, databases, multi-region, …). **SpaceXAI (Grok)** scores your design and runs Socratic follow-ups on scale, bottlenecks, and failure modes—like a mock interview, not a static PDF.
+A **system design teaching game**: learn real architectures on a drag-and-drop canvas, then **compete in the campaign**—clear levels, survive AI production wrenches, and chase scores. **SpaceXAI (Grok)** interviews your design (scale, bottlenecks, failure modes) and invents the incidents.
 
-Also includes a progressive **campaign** of design levels, **training** building blocks, and a secondary track for **agentic AI** architectures.
+**Loop:** Training / guided builds → free practice → **campaign**.  
+**Future (not built yet):** 3-day campaign seasons ranked by highest scores.
 
-**Modes:** free practice (`/`), campaign (`/campaign`), training (`/training`), guided builds — plus Google sign-in and cloud progress sync via Supabase when configured.
+**Modes:** training (`/training`), free practice (`/`), campaign (`/campaign`), guided builds — plus Google sign-in and cloud progress sync via Supabase when configured.
 
 **For coding agents:** start at [`AGENTS.md`](./AGENTS.md) and the application brain under [`docs/brain/`](./docs/brain/) (product intent, shipped features, where left off).
 
@@ -36,15 +37,17 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Campaign mode
+## Campaign mode (play / compete)
 
-A structured path of **system design levels** (not the only way to practice):
+The **game path** after you’ve learned the building blocks:
 
-1. Open **`/campaign`** — map of connected design problems.
+1. Open **`/campaign`** — map of connected system design levels.
 2. Enter an unlocked node → design on the canvas.
-3. **Deploy** → SpaceXAI can invent a production incident (latency, capacity, DB overflow, security, …) so you harden the design.
-4. Fix the canvas for that incident → submit.
-5. Clear the level’s drills → unlock the next problem. Progress is stored in `localStorage` (and Supabase when signed in).
+3. **Deploy — throw wrench** → SpaceXAI invents a production incident (latency, capacity, DB overflow, security, …).
+4. Fix the canvas for that incident → submit fix; earn progress / stars.
+5. Clear the level → unlock the next. Progress is stored in `localStorage` (and Supabase when signed in).
+
+**Roadmap:** time-boxed **~3-day seasons** where players compete for the highest campaign scores (leaderboards). Not implemented yet.
 
 ## Training
 

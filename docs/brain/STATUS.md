@@ -7,7 +7,7 @@
 
 ## TL;DR
 
-Main has all feature work from PRs #1–#7 (campaign, training, wrench, auth, progress sync, data-flow, marketing docs). **No open GitHub PRs.** Three local worktrees still point at already-merged branches and should be pruned. Application brain + pre-work board protocol is in progress on this tree.
+Product concept: **system design teaching game** — learn (training/practice), then compete in campaign (levels + wrenches + scores). **Future:** ~3-day seasons ranked by highest scores (not shipped). Brain + positioning live on PR #8 (`docs/application-brain`). Three local worktrees still STALE.
 
 ## Active work (in flight) — committed on main
 

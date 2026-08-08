@@ -4,43 +4,71 @@
 
 ## One-liner
 
-**System Design Lab** is a hands-on system design practice lab: drag components onto a canvas, wire real architectures (load balancers, caches, queues, DBs, multi-region, …), and get interviewed by **SpaceXAI (Grok)** on scale, bottlenecks, and failure modes—not another static whiteboard PDF.
+**System Design Lab** is a **system design teaching game**: learn architectures on a drag-and-drop canvas, then **compete in the campaign**—clear levels, survive production **wrenches**, and chase high scores. **SpaceXAI (Grok)** is the interviewer and the chaos engine.
 
-Campaign mode adds progressive levels and production-incident drills so you defend the design under pressure. Agentic AI problems are a second track for modern agent stacks, not the core identity.
+Not a static whiteboard PDF. Not pure free-form sandbox without stakes. **Learn → play → climb.**
+
+## High-level concept
+
+```
+  LEARN                         PLAY / COMPETE
+  ─────────────────────         ──────────────────────────────
+  Training + guided builds  →   Campaign map (levels + wrenches)
+  Free practice problems    →   Scores, stars, unlocks
+  Building blocks (cache,       Future: 3-day seasons /
+  queue, DB, …)                leaderboards (highest scores win)
+```
+
+| Pillar | What it means |
+| --- | --- |
+| **Subject** | Classic system design first (distributed systems); agentic AI as a second track |
+| **Teaching** | Canvas + training + guided builds + AI Socratic feedback |
+| **Game** | Campaign map, unlocks, wrenches (incidents), stars/progress |
+| **Competition (future)** | Timed campaign seasons (~3 days) ranked by score—not shipped yet |
 
 ## Audience
 
-- Engineers preparing for **system design interviews** (classic distributed systems first)
-- Learners who want interactive architecture practice (canvas + feedback, not slide decks alone)
-- Secondary: people designing agentic / LLM application architectures
+- Engineers preparing for **system design interviews** who learn better by building than reading
+- People who want **game-like progression** (levels, pressure, scores) around real architecture skills
+- Secondary: agentic / LLM application architecture practice
 
 ## Product modes
 
-| Mode | Route | Role |
+| Mode | Route | Role in the loop |
 | --- | --- | --- |
-| Free practice | `/` → `/design/[problemId]` | Classic + agentic design problems; full canvas; AI score + Socratic follow-ups |
-| **Campaign** | `/campaign` | Structured path of system design levels; unlock graph; optional AI incident drills on deploy |
-| Training | `/training`, `/training/[lessonId]` | Building blocks (cache, CDN, replicas, queues, …) with placement tips |
-| Guided builds | `/training/guided/[buildId]` | Step-by-step reference architectures with data-flow playback |
+| **Training** | `/training`, `/training/[lessonId]` | **Learn** — building blocks (cache, CDN, replicas, queues, …) |
+| **Guided builds** | `/training/guided/[buildId]` | **Learn** — step-by-step reference architectures + data-flow |
+| **Free practice** | `/` → `/design/[problemId]` | **Practice** — full problems, AI score, no map unlock pressure |
+| **Campaign** | `/campaign` | **Play / compete** — progressive levels, unlocks, wrench drills, stars |
 
 ## AI role
 
-- **Evaluate** designs (`POST /api/evaluate`) — score tradeoffs, scale, failure modes, Socratic follow-ups
-- **Wrench** (`POST /api/wrench`) — production-incident drill against the graph (campaign pressure, not the product pitch)
-- Model path: Vercel AI SDK + `@ai-sdk/xai` → SpaceXAI **`grok-4.5`** (server-side `XAI_API_KEY`)
+- **Evaluate** (`POST /api/evaluate`) — scores tradeoffs, scale, failure modes; Socratic follow-ups (teaching + score fuel)
+- **Wrench** (`POST /api/wrench`) — production incident against the graph (campaign stakes / “game pressure”)
+- Model: Vercel AI SDK + `@ai-sdk/xai` → SpaceXAI **`grok-4.5`** (`XAI_API_KEY` server-side)
 
 ## Tracks
 
 | Track | Focus | Priority |
 | --- | --- | --- |
-| **Classic systems** | Hashing, sharding, scale, DBs, caches, queues, multi-region | Primary |
-| Agentic AI | Model selection, RAG, tools, multi-agent, tool→LLM loops, span & e2e evals | Secondary track |
+| **Classic systems** | Hashing, sharding, scale, DBs, caches, queues, multi-region | Primary teaching content |
+| Agentic AI | Models, RAG, tools, multi-agent, evals | Secondary track in the same game loop |
 
 ## Auth & progress (product behavior)
 
-- Guests play fully; progress is always in **localStorage**
-- Signed-in users (Google via Supabase) get **cloud sync** for campaign + training progress, with merge-on-login so stars/completions are not lost
-- Auth is soft: not a hard gate on free play
+- Guests play fully; progress always in **localStorage**
+- Signed-in users (Google via Supabase): **cloud sync** for campaign + training; merge-on-login
+- Auth is soft today; competitive seasons will likely need durable identity (see Future)
+
+## Future (not shipped — do not implement as if live)
+
+| Idea | Intent | Status |
+| --- | --- | --- |
+| **3-day campaign seasons** | Time-boxed events; players compete for **highest scores** over ~3 days | Planned vision only |
+| Leaderboards / ranking | Season standings, maybe friends or global | Depends on seasons + auth |
+| Anti-cheat / score integrity | Server-side validation of campaign scores | Not started |
+
+Agents: list these under BOARD **PLANNED** only; never claim they exist in FEATURES until built.
 
 ## Non-product (docs only)
 
@@ -48,12 +76,11 @@ Campaign mode adds progressive levels and production-incident drills so you defe
 - Market research: `docs/market-research-viability.md`
 - PR drafts: `docs/pr-drafts/*`
 
-These are not runtime features. Do not build product code from them unless STATUS says so.
-
 ## Success signals
 
-- Users can explain and improve a system design after canvas practice + AI feedback
-- Classic problem coverage feels interview-relevant (URL shortener → global systems)
-- Campaign completion and incident drills improve resilience thinking
-- Progress resumes across devices when signed in
-- Coding agents do not reimplement shipped surfaces
+- Learners move Training → Practice → Campaign without feeling lost
+- Campaign feels like a **game with system design depth** (not trivia)
+- AI feedback improves designs between attempts
+- Progress resumes when signed in
+- (Later) Season participation and score competition drive return visits
+- Coding agents do not reimplement shipped surfaces or invent seasons as live
