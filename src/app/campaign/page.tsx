@@ -4,7 +4,8 @@ import { ArrowLeft } from "lucide-react";
 
 export const metadata = {
   title: "Campaign · System Design Lab",
-  description: "Progressive system design campaign — survive AI chaos wrenches.",
+  description:
+    "Progressive path of system design levels—practice architectures and harden them under AI incident drills.",
 };
 
 export default function CampaignPage() {

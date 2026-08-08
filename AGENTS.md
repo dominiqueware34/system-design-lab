@@ -78,7 +78,7 @@ Multiple agents / worktrees / features **must not** share one branch or pile edi
 ## Quick facts
 
 - Stack: Next.js 16 App Router, React 19, React Flow, AI SDK + xAI `grok-4.5`, Supabase
-- Primary UX: `/campaign` (map + wrench). Also: `/` practice, `/design/[id]`, `/training`
+- Primary: system design on canvas (`/`, `/design/[id]`). Also campaign, training, guided
 - Env: `XAI_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - Progress: localStorage always (`sdl-*-progress-v1`) + Supabase when signed in
 - STATUS/BOARD Active work is maintained **on main**; git tips are ground truth for worktrees

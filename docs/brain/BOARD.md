@@ -14,19 +14,19 @@ SYSTEM DESIGN LAB — FEATURE BOARD
 Last updated: 2026-08-08
 
 SHIPPED (summary — full detail in FEATURES.md)
-  [x] Free practice canvas + 16 problems + catalog
-  [x] SpaceXAI evaluate API
-  [x] Campaign map + wrench incidents
+  [x] System design canvas + 16 problems + component catalog
+  [x] SpaceXAI evaluate API (scale / failure modes)
+  [x] Campaign path of design levels + incident drills
   [x] Training lessons + guided builds
   [x] Animated data-flow playback (P0/P1)
   [x] Supabase Google auth + progress sync
   [x] Marketing docs (IG/X + video brief)
 
 IN FLIGHT
-  [~] Application brain / agent context (docs)
-      branch:  main (docs-only WIP — see note)
+  [~] Positioning: system-design-first copy (product + home + brain)
+      branch:  docs/application-brain (or follow-up on main)
       worktree: system-design-lab
-      next:     commit brain; enforce board + feature-branch protocol
+      next:     commit positioning tweak on feature branch / PR
 
 PLANNED (not started — pick one, open a feature branch)
   [ ] (none registered — add a row when you plan the next feature)

@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "System Design Lab",
   description:
-    "Practice classic distributed systems and agentic AI workflows on a drag-and-drop canvas. SpaceXAI evaluates designs and asks failure-mode and eval follow-ups.",
+    "Hands-on system design practice: build architectures on a canvas, get SpaceXAI feedback on scale, bottlenecks, and failure modes. Campaign levels and training included.",
 };
 
 export default function RootLayout({

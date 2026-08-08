@@ -4,34 +4,37 @@
 
 ## One-liner
 
-Practice **classic distributed systems** and **agentic AI workflows** on a drag-and-drop canvas. Deploy designs into a campaign map; **SpaceXAI (Grok)** scores architectures and throws production **wrenches** (incidents) you must fix to unlock the next path.
+**System Design Lab** is a hands-on system design practice lab: drag components onto a canvas, wire real architectures (load balancers, caches, queues, DBs, multi-region, …), and get interviewed by **SpaceXAI (Grok)** on scale, bottlenecks, and failure modes—not another static whiteboard PDF.
+
+Campaign mode adds progressive levels and production-incident drills so you defend the design under pressure. Agentic AI problems are a second track for modern agent stacks, not the core identity.
 
 ## Audience
 
-- Engineers prepping for system design and agentic-architecture interviews
-- Learners who want interactive architecture practice (not slide decks alone)
+- Engineers preparing for **system design interviews** (classic distributed systems first)
+- Learners who want interactive architecture practice (canvas + feedback, not slide decks alone)
+- Secondary: people designing agentic / LLM application architectures
 
 ## Product modes
 
 | Mode | Route | Role |
 | --- | --- | --- |
-| **Campaign (primary)** | `/campaign` | Zelda-style map of levels; unlock graph; AI wrenches on deploy |
-| Free practice | `/` → `/design/[problemId]` | Filter classic / agentic problems; score with no map unlock |
-| Training | `/training`, `/training/[lessonId]` | Bare-bones systems + placement tips |
-| Guided builds | `/training/guided/[buildId]` | Step-by-step architecture builds with data-flow playback |
+| Free practice | `/` → `/design/[problemId]` | Classic + agentic design problems; full canvas; AI score + Socratic follow-ups |
+| **Campaign** | `/campaign` | Structured path of system design levels; unlock graph; optional AI incident drills on deploy |
+| Training | `/training`, `/training/[lessonId]` | Building blocks (cache, CDN, replicas, queues, …) with placement tips |
+| Guided builds | `/training/guided/[buildId]` | Step-by-step reference architectures with data-flow playback |
 
 ## AI role
 
-- **Evaluate** designs (`POST /api/evaluate`) — score, failure modes, Socratic follow-ups, eval gaps
-- **Wrench** (`POST /api/wrench`) — invent a production incident against the submitted graph
+- **Evaluate** designs (`POST /api/evaluate`) — score tradeoffs, scale, failure modes, Socratic follow-ups
+- **Wrench** (`POST /api/wrench`) — production-incident drill against the graph (campaign pressure, not the product pitch)
 - Model path: Vercel AI SDK + `@ai-sdk/xai` → SpaceXAI **`grok-4.5`** (server-side `XAI_API_KEY`)
 
 ## Tracks
 
-| Track | Focus |
-| --- | --- |
-| Classic systems | Hashing, sharding, scale, DBs, caches, queues, multi-region |
-| Agentic AI | Model selection, RAG, tools, multi-agent, tool→LLM loops, span & e2e evals |
+| Track | Focus | Priority |
+| --- | --- | --- |
+| **Classic systems** | Hashing, sharding, scale, DBs, caches, queues, multi-region | Primary |
+| Agentic AI | Model selection, RAG, tools, multi-agent, tool→LLM loops, span & e2e evals | Secondary track |
 
 ## Auth & progress (product behavior)
 
@@ -49,7 +52,8 @@ These are not runtime features. Do not build product code from them unless STATU
 
 ## Success signals
 
-- Players complete campaign levels under wrench pressure
-- Designs improve after incident-driven iteration
+- Users can explain and improve a system design after canvas practice + AI feedback
+- Classic problem coverage feels interview-relevant (URL shortener → global systems)
+- Campaign completion and incident drills improve resilience thinking
 - Progress resumes across devices when signed in
-- Agents (coding LLMs) do not reimplement shipped surfaces
+- Coding agents do not reimplement shipped surfaces

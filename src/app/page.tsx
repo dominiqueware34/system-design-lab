@@ -32,57 +32,57 @@ export default function HomePage() {
         <header className="mb-10">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-300">
             <Sparkles className="h-3.5 w-3.5" />
-            SpaceXAI · classic systems + agentic workflows
+            System design practice · SpaceXAI interviewer
           </div>
           <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-            Design systems.
-            <span className="block text-zinc-400">Survive the campaign.</span>
+            Practice system design.
+            <span className="block text-zinc-400">On a real canvas.</span>
           </h1>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-zinc-400">
-            Walk a Zelda-style map of levels. Deploy your architecture — the AI throws a{" "}
-            <span className="text-zinc-200">wrench</span> (latency, security, DB overflow,
-            agent failure). Fix it or the path stays locked. Or free-practice any problem
-            below.
+            Build architectures with load balancers, caches, queues, and databases.{" "}
+            <span className="text-zinc-200">SpaceXAI</span> scores tradeoffs and probes
+            failure modes—like a mock interview. Work free-practice problems below, train
+            building blocks, or progress through the campaign path.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/campaign"
-              className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-900/30 hover:bg-rose-500"
+            <a
+              href="#practice"
+              className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-900/30 hover:bg-violet-500"
             >
-              Play campaign
+              Free practice
               <ArrowRight className="h-4 w-4" />
-            </Link>
+            </a>
             <Link
               href="/training"
               className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white hover:bg-sky-500"
             >
-              Training · show me how
+              Training · building blocks
             </Link>
-            <a
-              href="#practice"
+            <Link
+              href="/campaign"
               className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-5 py-3 text-sm font-medium text-zinc-300 hover:bg-white/5"
             >
-              Free practice
-            </a>
+              Campaign path
+            </Link>
           </div>
 
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
             {[
               {
-                icon: Bot,
-                title: "Training mode",
-                body: "Bare-bones systems + SVG tips. Learn cache, DLQ, RAG, when keywords mean which tool.",
-              },
-              {
                 icon: Layers,
-                title: "Campaign + practice",
-                body: "Map levels with AI wrenches, or free-design classic and agentic problems.",
+                title: "Design on a canvas",
+                body: "Classic system design components—wire real topologies, not bullets on a slide.",
               },
               {
                 icon: Target,
-                title: "Socratic follow-ups",
-                body: "Miss redundancy or evals? The interviewer asks where to improve.",
+                title: "AI design interview",
+                body: "SpaceXAI scores scale, bottlenecks, and failure modes with Socratic follow-ups.",
+              },
+              {
+                icon: Bot,
+                title: "Train, then campaign",
+                body: "Learn building blocks, then progress levels—harden designs under incident pressure.",
               },
             ].map(({ icon: Icon, title, body }) => (
               <div
