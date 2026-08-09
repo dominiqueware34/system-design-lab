@@ -22,6 +22,7 @@
 | Auth + session | `/auth/callback` | `src/lib/supabase/*`, `src/proxy.ts`, `src/components/auth/*`, `src/lib/auth-client.ts` | Google OAuth via Supabase SSR |
 | Progress dual model | `/api/progress/campaign`, `/api/progress/training`, `/api/progress/merge` | `src/lib/progress-sync.ts`, `src/lib/progress-merge.ts`, `src/lib/progress-db.ts`, migration SQL | localStorage **always** + Supabase when signed in (storage key still `sdl-campaign-progress-v1` for Solo map) |
 | Marketing / research | docs only | `docs/marketing/*`, `docs/market-research-viability.md` | Not runtime |
+| Campaign season prompt pack (offline) | fixture only (no UI) | `fixtures/campaign/season-prompts-v1.json`, `src/lib/catalog-schema.ts`, `src/lib/design-graph-validate.ts`, `src/lib/campaign-prompt-schema.ts`, `scripts/generate-season-prompts.ts` | Artifact 3: **20** pre-gen prompts + reference designs; operator docs `docs/specs/campaign-prompt-generation.md`. Not competitive season UI. |
 
 ### Deep links (design canvas)
 

@@ -1,71 +1,43 @@
-# Artifact 1 / #16 — App nav + route shells
+# Artifact 3 — Campaign prompt gen (#15)
 
-**Branch:** `feat/app-nav-mode-shells`  
-**PR:** https://github.com/dominiqueware34/system-design-lab/pull/19  
-**Closes:** #16  
-**Commit:** `7a6b3cc`
+## PR
 
-## What shipped
+https://github.com/dominiqueware34/system-design-lab/pull/20
 
-| Surface | Route | Behavior |
-| --- | --- | --- |
-| Primary nav | all main pages | **Training \| Solo Mode \| Campaign \| Practice** (`AppNav`; hidden on `/design/*`) |
-| Hub | `/` | Four mode cards + short CTAs (not the practice list) |
-| Solo Mode | `/solo` | Legacy 15-level map (`CampaignMap`), personal progression labels |
-| Campaign | `/campaign` | Guest: pitch + Google CTA; signed-in: season placeholder |
-| Practice | `/practice` | Free practice problem picker (moved from `/`) |
-| Design deep links | `/design/[id]?solo=` | Prefer `?solo=`; accept legacy `?campaign=` as Solo alias |
-| Back links | canvas chrome | Solo map → `/solo`; free practice → `/practice` |
+## Merge note
 
-## Files changed
+Rebased/merged `origin/main` (includes PR #19 nav shells). Only conflict was this handoff file (`SUMMARY.md` add/add). FEATURES.md auto-merged cleanly (nav rows + season prompt pack).
 
-**New**
-- `src/components/nav/AppNav.tsx`
-- `src/components/practice/ProblemPicker.tsx`
-- `src/app/solo/page.tsx`
-- `src/app/practice/page.tsx`
+## What shipped (this branch)
 
-**Updated**
-- `src/app/layout.tsx` — mount `AppNav`
-- `src/app/page.tsx` — mode hub
-- `src/app/campaign/page.tsx` — competitive shell (not map)
-- `src/app/design/[problemId]/page.tsx` — `solo` + legacy `campaign` params
-- `src/components/canvas/DesignWorkspace.tsx` — back/continue → `/solo` or `/practice`
-- `src/components/campaign/CampaignMap.tsx` — Solo Mode copy
-- `src/lib/campaign.ts` — `campaignHref` → `?solo=` + `/solo`; `soloHref` alias
-- `src/lib/auth-client.ts`, auth callback, `AuthHeader`, `SignInPrompt` — safer post-auth defaults
-- `src/app/training/page.tsx` — footer links; drop redundant Home bar
-- `docs/brain/FEATURES.md` — nav/routes inventory
+Offline pipeline + committed fixture for competitive Campaign seasons:
+
+- `exportCatalogSchema()` from `COMPONENT_CATALOG`
+- Zod schemas for season prompts (problem + referenceDesign + rationale + difficulty + track)
+- `validateDesignGraph` (unknown types / bad enums fail)
+- Script `scripts/generate-season-prompts.ts` → `fixtures/campaign/season-prompts-v1.json`
+- **20** catalog-valid prompts in fixture (programmatic source; XAI path when key present)
+- Operator docs: `docs/specs/campaign-prompt-generation.md`
 
 ## How to test
 
 ```bash
 npm install
-npm run dev
-# open http://localhost:3000
+npm test
+npm run generate:season-prompts -- --offline   # rewrite fixture without API
+# with key:
+# export XAI_API_KEY=...
+# npm run generate:season-prompts              # fails without key unless --offline
 ```
 
-1. **Hub `/`** — four cards (Training, Solo Mode, Campaign, Practice); top nav has four tabs.
-2. **Practice** — click Practice tab or card → problem list; open a problem → canvas; **Problems** back → `/practice`.
-3. **Solo** — `/solo` shows Architecture Trail; open unlocked level → URL contains `?solo=<levelId>`; **Map** back → `/solo`.
-4. **Legacy alias** — visit e.g. `/design/url-shortener?campaign=w1-l1` (valid level/problem pair) → Solo wrench flow still works.
-5. **Campaign** — `/campaign` is **not** the map. Guest: pitch + Continue with Google. Signed-in: placeholder + links to Solo/Practice.
-6. **Training** — still loads lessons/guided; nav can switch modes.
+## Out of scope (intentional)
 
-## Risks / notes
+- Season UI / nav / DesignWorkspace (nav is on main via #19)
+- DB insert / migrations
+- Plan B constraint engine
+- Live mid-request generation
 
-- Progress storage keys remain `sdl-campaign-progress-v1` / API path `/api/progress/campaign` (legacy naming); Solo multi-problem (#11) can rename later.
-- Internal prop still named `campaignLevelId` in `DesignWorkspace` to avoid churning wrench/progress code; user-facing labels say Solo.
-- Competitive seasons still not runtime — only shell/CTA.
-- After merge: clear #16 from BOARD/STATUS on **main** (claim hygiene).
+## Risks
 
-## Acceptance checklist
-
-- [x] Four nav tabs on main surfaces  
-- [x] Practice list at `/practice`  
-- [x] Solo map playable at `/solo`  
-- [x] `/campaign` is not the old solo map labeled as competitive campaign  
-- [x] Guests on `/campaign` get sign-in CTA  
-- [x] FEATURES.md updated for nav/routes  
-- [x] Commits on `feat/app-nav-mode-shells`  
-- [x] PR to main linking #16  
+- Committed fixture is `source: programmatic` (not live XAI). Regenerate with `XAI_API_KEY` when desired; re-validate with `npm test` + script.
+- AI batches may occasionally emit invalid catalog enums; script validates and exits non-zero — re-run or fall back to `--offline`.
