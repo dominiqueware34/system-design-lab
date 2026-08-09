@@ -1,0 +1,4224 @@
+{
+  "version": 1,
+  "formulaId": "v1_correct_diff_cover",
+  "source": "programmatic",
+  "generatedAt": "2026-08-09T22:03:57.020Z",
+  "notes": "Programmatic catalog-valid pack. Regenerate with XAI via npm run generate:season-prompts when XAI_API_KEY is set.",
+  "prompts": [
+    {
+      "id": "season-url-shortener",
+      "title": "URL Shortener at Scale",
+      "difficulty": "easy",
+      "track": "classic",
+      "summary": "Design a bit.ly-style shortener with hash codes, cache, and a scale path.",
+      "description": "Users create short codes from long URLs; redirects must be very fast. Cover code generation, collision handling, caching, and sharding of the mapping store.",
+      "requirements": [
+        "Create short URLs (hash or ID encoding)",
+        "Low-latency redirects",
+        "Handle collisions / custom aliases",
+        "Cache hot mappings",
+        "Explain DB schema and scale path"
+      ],
+      "constraints": {
+        "expectedQps": "1k write / 10k read QPS",
+        "latencySla": "Redirect p99 < 100ms",
+        "availability": "99.9%",
+        "consistency": "Strong for create"
+      },
+      "evaluationFocus": [
+        "hashing / ID generation",
+        "caching",
+        "sharding plan",
+        "redundancy"
+      ],
+      "hints": [
+        "Reads dominate — cache aggressively"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "client",
+            "type": "web_client",
+            "position": {
+              "x": 0,
+              "y": 80
+            },
+            "data": {
+              "componentType": "web_client",
+              "label": "Web Client",
+              "category": "client",
+              "color": "#38bdf8",
+              "icon": "monitor",
+              "attributes": {
+                "device": "Both",
+                "rendering": "SSR"
+              }
+            }
+          },
+          {
+            "id": "cdn",
+            "type": "cdn",
+            "position": {
+              "x": 180,
+              "y": 80
+            },
+            "data": {
+              "componentType": "cdn",
+              "label": "CDN",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "globe-2",
+              "attributes": {
+                "regions": "Global",
+                "cacheTtl": 300,
+                "httpsOnly": true
+              }
+            }
+          },
+          {
+            "id": "lb",
+            "type": "load_balancer",
+            "position": {
+              "x": 360,
+              "y": 80
+            },
+            "data": {
+              "componentType": "load_balancer",
+              "label": "Load Balancer",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "scale",
+              "attributes": {
+                "layer": "L7",
+                "algorithm": "Least connections",
+                "healthChecks": true,
+                "multiAz": true
+              }
+            }
+          },
+          {
+            "id": "api",
+            "type": "app_server",
+            "position": {
+              "x": 540,
+              "y": 80
+            },
+            "data": {
+              "componentType": "app_server",
+              "label": "App Server",
+              "category": "compute",
+              "color": "#34d399",
+              "icon": "server",
+              "attributes": {
+                "stateless": true,
+                "replicas": 4,
+                "autoScale": true,
+                "region": "Multi-AZ"
+              }
+            }
+          },
+          {
+            "id": "cache",
+            "type": "cache",
+            "position": {
+              "x": 720,
+              "y": 0
+            },
+            "data": {
+              "componentType": "cache",
+              "label": "Cache",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "layers",
+              "attributes": {
+                "engine": "Redis",
+                "sizeGb": 16,
+                "ttlSeconds": 300,
+                "eviction": "LRU",
+                "clustered": true
+              }
+            }
+          },
+          {
+            "id": "db",
+            "type": "sql_database",
+            "position": {
+              "x": 720,
+              "y": 160
+            },
+            "data": {
+              "componentType": "sql_database",
+              "label": "SQL Database",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "database",
+              "attributes": {
+                "engine": "PostgreSQL",
+                "sizeGb": 100,
+                "replication": "Async replicas",
+                "sharding": false,
+                "shardKey": "hash(id)",
+                "partitionStrategy": "Hash",
+                "shardCount": 1,
+                "readReplicas": 1
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "client",
+            "target": "cdn"
+          },
+          {
+            "id": "e2",
+            "source": "cdn",
+            "target": "lb"
+          },
+          {
+            "id": "e3",
+            "source": "lb",
+            "target": "api"
+          },
+          {
+            "id": "e4",
+            "source": "api",
+            "target": "cache",
+            "label": "GET mapping"
+          },
+          {
+            "id": "e5",
+            "source": "api",
+            "target": "db",
+            "label": "write / miss"
+          }
+        ]
+      },
+      "rationale": "Edge + LB for latency and scale; Redis absorbs redirect reads; SQL holds durable mappings with a clear hash partition path."
+    },
+    {
+      "id": "season-distributed-kv",
+      "title": "Distributed Key-Value Store",
+      "difficulty": "easy",
+      "track": "classic",
+      "summary": "Dynamo-style KV with consistent hashing and replication.",
+      "description": "Design a key-value store: partition with consistent hashing, replicate for durability, support get/put under partition risk.",
+      "requirements": [
+        "Get/put by key",
+        "Consistent hashing with virtual nodes",
+        "Replication factor N",
+        "Node join/leave with limited movement",
+        "Quorum reads/writes"
+      ],
+      "constraints": {
+        "expectedQps": "50k ops/sec",
+        "latencySla": "p99 < 20ms local",
+        "availability": "AP-leaning",
+        "consistency": "Tunable quorum"
+      },
+      "evaluationFocus": [
+        "consistent hashing",
+        "replication",
+        "node failure",
+        "hot keys"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "client",
+            "type": "web_client",
+            "position": {
+              "x": 0,
+              "y": 100
+            },
+            "data": {
+              "componentType": "web_client",
+              "label": "Web Client",
+              "category": "client",
+              "color": "#38bdf8",
+              "icon": "monitor",
+              "attributes": {
+                "device": "Both",
+                "rendering": "SSR"
+              }
+            }
+          },
+          {
+            "id": "gw",
+            "type": "api_gateway",
+            "position": {
+              "x": 180,
+              "y": 100
+            },
+            "data": {
+              "componentType": "api_gateway",
+              "label": "API Gateway",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "door-open",
+              "attributes": {
+                "auth": "JWT",
+                "rateLimitRps": 1000,
+                "timeoutMs": 3000
+              }
+            }
+          },
+          {
+            "id": "kv",
+            "type": "nosql_database",
+            "position": {
+              "x": 400,
+              "y": 100
+            },
+            "data": {
+              "componentType": "nosql_database",
+              "label": "NoSQL Database",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "database",
+              "attributes": {
+                "model": "Key-value",
+                "engine": "DynamoDB",
+                "sizeGb": 500,
+                "consistency": "Eventual",
+                "partitioning": true,
+                "partitionKey": "user_id",
+                "hashing": "Consistent hashing",
+                "globalTables": false
+              }
+            }
+          },
+          {
+            "id": "mon",
+            "type": "monitoring",
+            "position": {
+              "x": 600,
+              "y": 100
+            },
+            "data": {
+              "componentType": "monitoring",
+              "label": "Monitoring",
+              "category": "observability",
+              "color": "#94a3b8",
+              "icon": "bar-chart-3",
+              "attributes": {
+                "stack": "Prometheus+Grafana",
+                "alerting": true
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "client",
+            "target": "gw"
+          },
+          {
+            "id": "e2",
+            "source": "gw",
+            "target": "kv"
+          },
+          {
+            "id": "e3",
+            "source": "kv",
+            "target": "mon",
+            "label": "metrics"
+          }
+        ]
+      },
+      "rationale": "Gateway fronts a KV store configured for consistent hashing and multi-AZ replication; monitoring tracks hot partitions."
+    },
+    {
+      "id": "season-rate-limiter",
+      "title": "Distributed Rate Limiter",
+      "difficulty": "easy",
+      "track": "classic",
+      "summary": "Shared rate limits across gateway fleet with low added latency.",
+      "description": "Gateways call a limiter for per-user or per-IP quotas. Limits must be shared across instances without becoming a bottleneck.",
+      "requirements": [
+        "Token-bucket or sliding window",
+        "Shared state across instances",
+        "Low added latency",
+        "Configurable limits per key",
+        "Degrade gracefully if store is down"
+      ],
+      "constraints": {
+        "expectedQps": "50k check QPS",
+        "latencySla": "p99 < 10ms",
+        "availability": "99.99%"
+      },
+      "evaluationFocus": [
+        "latency",
+        "shared state",
+        "sharding by key",
+        "failure"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "gw",
+            "type": "api_gateway",
+            "position": {
+              "x": 0,
+              "y": 80
+            },
+            "data": {
+              "componentType": "api_gateway",
+              "label": "API Gateway",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "door-open",
+              "attributes": {
+                "auth": "JWT",
+                "rateLimitRps": 1000,
+                "timeoutMs": 3000
+              }
+            }
+          },
+          {
+            "id": "rl",
+            "type": "rate_limiter",
+            "position": {
+              "x": 200,
+              "y": 80
+            },
+            "data": {
+              "componentType": "rate_limiter",
+              "label": "Rate Limiter",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "gauge",
+              "attributes": {
+                "strategy": "Token bucket",
+                "limitRps": 100,
+                "scope": "Per user"
+              }
+            }
+          },
+          {
+            "id": "store",
+            "type": "cache",
+            "position": {
+              "x": 400,
+              "y": 80
+            },
+            "data": {
+              "componentType": "cache",
+              "label": "Cache",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "layers",
+              "attributes": {
+                "engine": "Redis",
+                "sizeGb": 16,
+                "ttlSeconds": 300,
+                "eviction": "LRU",
+                "clustered": true
+              }
+            }
+          },
+          {
+            "id": "api",
+            "type": "app_server",
+            "position": {
+              "x": 600,
+              "y": 80
+            },
+            "data": {
+              "componentType": "app_server",
+              "label": "App Server",
+              "category": "compute",
+              "color": "#34d399",
+              "icon": "server",
+              "attributes": {
+                "stateless": true,
+                "replicas": 3,
+                "autoScale": true,
+                "region": "Multi-AZ"
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "gw",
+            "target": "rl",
+            "label": "check"
+          },
+          {
+            "id": "e2",
+            "source": "rl",
+            "target": "store"
+          },
+          {
+            "id": "e3",
+            "source": "rl",
+            "target": "api",
+            "label": "allow"
+          }
+        ]
+      },
+      "rationale": "Rate limiter with Redis cluster state keeps checks fast and sharded by key; gateway enforces before app work."
+    },
+    {
+      "id": "season-realtime-chat",
+      "title": "Real-time Chat System",
+      "difficulty": "medium",
+      "track": "classic",
+      "summary": "1:1 and group chat with presence, fan-out, and message history.",
+      "description": "Design messaging with low-latency delivery, offline inbox, and scalable group fan-out.",
+      "requirements": [
+        "1:1 and group messages",
+        "Presence / online status",
+        "Message history and search",
+        "Push for offline users",
+        "Order within a conversation"
+      ],
+      "constraints": {
+        "expectedQps": "100k concurrent connections",
+        "latencySla": "Message p99 < 200ms same region",
+        "dataVolume": "Billions of messages",
+        "consistency": "Causal within conversation"
+      },
+      "evaluationFocus": [
+        "connection tier",
+        "fan-out",
+        "storage split",
+        "offline delivery"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "mobile",
+            "type": "mobile_client",
+            "position": {
+              "x": 0,
+              "y": 40
+            },
+            "data": {
+              "componentType": "mobile_client",
+              "label": "Mobile Client",
+              "category": "client",
+              "color": "#38bdf8",
+              "icon": "smartphone",
+              "attributes": {
+                "platform": "Cross-platform",
+                "network": "Mixed",
+                "offlineSupport": false
+              }
+            }
+          },
+          {
+            "id": "web",
+            "type": "web_client",
+            "position": {
+              "x": 0,
+              "y": 160
+            },
+            "data": {
+              "componentType": "web_client",
+              "label": "Web Client",
+              "category": "client",
+              "color": "#38bdf8",
+              "icon": "monitor",
+              "attributes": {
+                "device": "Both",
+                "rendering": "SSR"
+              }
+            }
+          },
+          {
+            "id": "gw",
+            "type": "api_gateway",
+            "position": {
+              "x": 200,
+              "y": 100
+            },
+            "data": {
+              "componentType": "api_gateway",
+              "label": "API Gateway",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "door-open",
+              "attributes": {
+                "auth": "JWT",
+                "rateLimitRps": 1000,
+                "timeoutMs": 3000
+              }
+            }
+          },
+          {
+            "id": "chat",
+            "type": "microservice",
+            "position": {
+              "x": 400,
+              "y": 100
+            },
+            "data": {
+              "componentType": "microservice",
+              "label": "Microservice",
+              "category": "compute",
+              "color": "#34d399",
+              "icon": "boxes",
+              "attributes": {
+                "name": "chat-service",
+                "replicas": 3,
+                "timeoutMs": 2000
+              }
+            }
+          },
+          {
+            "id": "q",
+            "type": "message_queue",
+            "position": {
+              "x": 600,
+              "y": 40
+            },
+            "data": {
+              "componentType": "message_queue",
+              "label": "Message Queue",
+              "category": "messaging",
+              "color": "#f472b6",
+              "icon": "list-ordered",
+              "attributes": {
+                "engine": "SQS",
+                "delivery": "At-least-once",
+                "dlq": true,
+                "visibilityTimeoutSec": 30
+              }
+            }
+          },
+          {
+            "id": "msgdb",
+            "type": "nosql_database",
+            "position": {
+              "x": 600,
+              "y": 160
+            },
+            "data": {
+              "componentType": "nosql_database",
+              "label": "NoSQL Database",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "database",
+              "attributes": {
+                "model": "Wide-column",
+                "engine": "Cassandra",
+                "sizeGb": 500,
+                "consistency": "Eventual",
+                "partitioning": true,
+                "partitionKey": "user_id",
+                "hashing": "Consistent hashing",
+                "globalTables": false
+              }
+            }
+          },
+          {
+            "id": "cache",
+            "type": "cache",
+            "position": {
+              "x": 400,
+              "y": 220
+            },
+            "data": {
+              "componentType": "cache",
+              "label": "Cache",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "layers",
+              "attributes": {
+                "engine": "Redis",
+                "sizeGb": 16,
+                "ttlSeconds": 300,
+                "eviction": "LRU",
+                "clustered": true
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "mobile",
+            "target": "gw"
+          },
+          {
+            "id": "e2",
+            "source": "web",
+            "target": "gw"
+          },
+          {
+            "id": "e3",
+            "source": "gw",
+            "target": "chat"
+          },
+          {
+            "id": "e4",
+            "source": "chat",
+            "target": "q",
+            "label": "fan-out"
+          },
+          {
+            "id": "e5",
+            "source": "chat",
+            "target": "msgdb",
+            "label": "persist"
+          },
+          {
+            "id": "e6",
+            "source": "chat",
+            "target": "cache",
+            "label": "presence"
+          }
+        ]
+      },
+      "rationale": "Gateway + chat service with async fan-out queue, durable wide-column history, and cache for presence."
+    },
+    {
+      "id": "season-news-feed",
+      "title": "News Feed / Timeline",
+      "difficulty": "medium",
+      "track": "classic",
+      "summary": "Fan-out on write/read hybrid feed for social timeline.",
+      "description": "Users post and follow others; home timeline must stay fast as graph and write volume grow.",
+      "requirements": [
+        "Publish posts",
+        "Home timeline for followees",
+        "Handle celebrity fan-out",
+        "Pagination and ranking hooks",
+        "Cache hot timelines"
+      ],
+      "constraints": {
+        "expectedQps": "10k write / 100k read QPS",
+        "latencySla": "Timeline p99 < 300ms",
+        "dataVolume": "Multi-TB posts + edges"
+      },
+      "evaluationFocus": [
+        "fan-out strategy",
+        "cache",
+        "celebrity problem",
+        "ranking storage"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "c",
+            "type": "web_client",
+            "position": {
+              "x": 0,
+              "y": 100
+            },
+            "data": {
+              "componentType": "web_client",
+              "label": "Web Client",
+              "category": "client",
+              "color": "#38bdf8",
+              "icon": "monitor",
+              "attributes": {
+                "device": "Both",
+                "rendering": "SSR"
+              }
+            }
+          },
+          {
+            "id": "lb",
+            "type": "load_balancer",
+            "position": {
+              "x": 160,
+              "y": 100
+            },
+            "data": {
+              "componentType": "load_balancer",
+              "label": "Load Balancer",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "scale",
+              "attributes": {
+                "layer": "L7",
+                "algorithm": "Least connections",
+                "healthChecks": true,
+                "multiAz": true
+              }
+            }
+          },
+          {
+            "id": "feed",
+            "type": "app_server",
+            "position": {
+              "x": 320,
+              "y": 100
+            },
+            "data": {
+              "componentType": "app_server",
+              "label": "App Server",
+              "category": "compute",
+              "color": "#34d399",
+              "icon": "server",
+              "attributes": {
+                "stateless": true,
+                "replicas": 3,
+                "autoScale": true,
+                "region": "Multi-AZ"
+              }
+            }
+          },
+          {
+            "id": "q",
+            "type": "pubsub",
+            "position": {
+              "x": 480,
+              "y": 40
+            },
+            "data": {
+              "componentType": "pubsub",
+              "label": "Pub/Sub",
+              "category": "messaging",
+              "color": "#f472b6",
+              "icon": "radio",
+              "attributes": {
+                "engine": "SNS",
+                "fanout": "Push",
+                "ordering": false
+              }
+            }
+          },
+          {
+            "id": "worker",
+            "type": "worker",
+            "position": {
+              "x": 640,
+              "y": 40
+            },
+            "data": {
+              "componentType": "worker",
+              "label": "Background Worker",
+              "category": "compute",
+              "color": "#34d399",
+              "icon": "cog",
+              "attributes": {
+                "concurrency": 10,
+                "retryPolicy": "Exponential backoff",
+                "replicas": 2
+              }
+            }
+          },
+          {
+            "id": "cache",
+            "type": "cache",
+            "position": {
+              "x": 480,
+              "y": 160
+            },
+            "data": {
+              "componentType": "cache",
+              "label": "Cache",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "layers",
+              "attributes": {
+                "engine": "Redis",
+                "sizeGb": 16,
+                "ttlSeconds": 300,
+                "eviction": "LRU",
+                "clustered": true
+              }
+            }
+          },
+          {
+            "id": "db",
+            "type": "sql_database",
+            "position": {
+              "x": 640,
+              "y": 160
+            },
+            "data": {
+              "componentType": "sql_database",
+              "label": "SQL Database",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "database",
+              "attributes": {
+                "engine": "PostgreSQL",
+                "sizeGb": 100,
+                "replication": "Async replicas",
+                "sharding": true,
+                "shardKey": "user_id",
+                "partitionStrategy": "None",
+                "shardCount": 1,
+                "readReplicas": 1
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "c",
+            "target": "lb"
+          },
+          {
+            "id": "e2",
+            "source": "lb",
+            "target": "feed"
+          },
+          {
+            "id": "e3",
+            "source": "feed",
+            "target": "q",
+            "label": "post events"
+          },
+          {
+            "id": "e4",
+            "source": "q",
+            "target": "worker"
+          },
+          {
+            "id": "e5",
+            "source": "worker",
+            "target": "cache",
+            "label": "precompute"
+          },
+          {
+            "id": "e6",
+            "source": "feed",
+            "target": "cache",
+            "label": "read timeline"
+          },
+          {
+            "id": "e7",
+            "source": "feed",
+            "target": "db"
+          }
+        ]
+      },
+      "rationale": "Hybrid fan-out: workers precompute timelines into cache; SQL holds durable posts sharded by user."
+    },
+    {
+      "id": "season-global-id",
+      "title": "Global Unique ID Generator",
+      "difficulty": "medium",
+      "track": "classic",
+      "summary": "High-throughput globally unique IDs with rough time ordering.",
+      "description": "Services need unique 64-bit IDs at high QPS without a single coordinator bottleneck.",
+      "requirements": [
+        "Globally unique IDs",
+        "High throughput multi-region",
+        "Rough time-sortable",
+        "No single point of failure",
+        "Explain clock / sequence design"
+      ],
+      "constraints": {
+        "expectedQps": "100k IDs/sec",
+        "latencySla": "p99 < 5ms",
+        "regions": "3 regions"
+      },
+      "evaluationFocus": [
+        "uniqueness",
+        "clock skew",
+        "throughput",
+        "multi-region"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "svc",
+            "type": "microservice",
+            "position": {
+              "x": 0,
+              "y": 80
+            },
+            "data": {
+              "componentType": "microservice",
+              "label": "Microservice",
+              "category": "compute",
+              "color": "#34d399",
+              "icon": "boxes",
+              "attributes": {
+                "name": "id-service",
+                "replicas": 3,
+                "timeoutMs": 2000
+              }
+            }
+          },
+          {
+            "id": "lb",
+            "type": "load_balancer",
+            "position": {
+              "x": 200,
+              "y": 80
+            },
+            "data": {
+              "componentType": "load_balancer",
+              "label": "Load Balancer",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "scale",
+              "attributes": {
+                "layer": "L7",
+                "algorithm": "Least connections",
+                "healthChecks": true,
+                "multiAz": true
+              }
+            }
+          },
+          {
+            "id": "idnodes",
+            "type": "app_server",
+            "position": {
+              "x": 400,
+              "y": 80
+            },
+            "data": {
+              "componentType": "app_server",
+              "label": "App Server",
+              "category": "compute",
+              "color": "#34d399",
+              "icon": "server",
+              "attributes": {
+                "stateless": true,
+                "replicas": 6,
+                "autoScale": true,
+                "region": "Multi-AZ"
+              }
+            }
+          },
+          {
+            "id": "zk",
+            "type": "cache",
+            "position": {
+              "x": 600,
+              "y": 80
+            },
+            "data": {
+              "componentType": "cache",
+              "label": "Cache",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "layers",
+              "attributes": {
+                "engine": "Redis",
+                "sizeGb": 16,
+                "ttlSeconds": 300,
+                "eviction": "LRU",
+                "clustered": true
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "svc",
+            "target": "lb"
+          },
+          {
+            "id": "e2",
+            "source": "lb",
+            "target": "idnodes"
+          },
+          {
+            "id": "e3",
+            "source": "idnodes",
+            "target": "zk",
+            "label": "worker id lease"
+          }
+        ]
+      },
+      "rationale": "Stateless ID nodes with leased worker bits (Snowflake-style) avoid a single sequence bottleneck."
+    },
+    {
+      "id": "season-ride-sharing",
+      "title": "Ride Sharing Dispatch",
+      "difficulty": "hard",
+      "track": "classic",
+      "summary": "Match riders to nearby drivers with geo indexing and realtime updates.",
+      "description": "Design dispatch: location updates, nearby search, matching, trip state, and surge-friendly scale.",
+      "requirements": [
+        "Driver location streaming",
+        "Nearby driver query",
+        "Match + trip lifecycle",
+        "ETA estimation path",
+        "Handle region spikes"
+      ],
+      "constraints": {
+        "expectedQps": "50k location updates/sec",
+        "latencySla": "Match p99 < 1s",
+        "regions": "Multi-city geo partitions",
+        "consistency": "Strong trip state; eventual location"
+      },
+      "evaluationFocus": [
+        "geo index",
+        "streaming locations",
+        "matching",
+        "partition by city"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "driver",
+            "type": "mobile_client",
+            "position": {
+              "x": 0,
+              "y": 40
+            },
+            "data": {
+              "componentType": "mobile_client",
+              "label": "Mobile Client",
+              "category": "client",
+              "color": "#38bdf8",
+              "icon": "smartphone",
+              "attributes": {
+                "platform": "Cross-platform",
+                "network": "Mixed",
+                "offlineSupport": false
+              }
+            }
+          },
+          {
+            "id": "rider",
+            "type": "mobile_client",
+            "position": {
+              "x": 0,
+              "y": 160
+            },
+            "data": {
+              "componentType": "mobile_client",
+              "label": "Mobile Client",
+              "category": "client",
+              "color": "#38bdf8",
+              "icon": "smartphone",
+              "attributes": {
+                "platform": "Cross-platform",
+                "network": "Mixed",
+                "offlineSupport": false
+              }
+            }
+          },
+          {
+            "id": "gw",
+            "type": "api_gateway",
+            "position": {
+              "x": 180,
+              "y": 100
+            },
+            "data": {
+              "componentType": "api_gateway",
+              "label": "API Gateway",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "door-open",
+              "attributes": {
+                "auth": "JWT",
+                "rateLimitRps": 1000,
+                "timeoutMs": 3000
+              }
+            }
+          },
+          {
+            "id": "dispatch",
+            "type": "microservice",
+            "position": {
+              "x": 360,
+              "y": 100
+            },
+            "data": {
+              "componentType": "microservice",
+              "label": "Microservice",
+              "category": "compute",
+              "color": "#34d399",
+              "icon": "boxes",
+              "attributes": {
+                "name": "dispatch",
+                "replicas": 3,
+                "timeoutMs": 2000
+              }
+            }
+          },
+          {
+            "id": "stream",
+            "type": "stream_processor",
+            "position": {
+              "x": 540,
+              "y": 40
+            },
+            "data": {
+              "componentType": "stream_processor",
+              "label": "Stream Processor",
+              "category": "messaging",
+              "color": "#f472b6",
+              "icon": "waves",
+              "attributes": {
+                "engine": "Kafka",
+                "partitions": 12,
+                "retentionHours": 168,
+                "replicationFactor": 3
+              }
+            }
+          },
+          {
+            "id": "geo",
+            "type": "nosql_database",
+            "position": {
+              "x": 540,
+              "y": 160
+            },
+            "data": {
+              "componentType": "nosql_database",
+              "label": "NoSQL Database",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "database",
+              "attributes": {
+                "model": "Key-value",
+                "engine": "Redis",
+                "sizeGb": 500,
+                "consistency": "Eventual",
+                "partitioning": true,
+                "partitionKey": "geo+id",
+                "hashing": "Consistent hashing",
+                "globalTables": false
+              }
+            }
+          },
+          {
+            "id": "trips",
+            "type": "sql_database",
+            "position": {
+              "x": 720,
+              "y": 100
+            },
+            "data": {
+              "componentType": "sql_database",
+              "label": "SQL Database",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "database",
+              "attributes": {
+                "engine": "PostgreSQL",
+                "sizeGb": 100,
+                "replication": "Async replicas",
+                "sharding": true,
+                "shardKey": "geo",
+                "partitionStrategy": "None",
+                "shardCount": 1,
+                "readReplicas": 1
+              }
+            }
+          },
+          {
+            "id": "q",
+            "type": "message_queue",
+            "position": {
+              "x": 360,
+              "y": 220
+            },
+            "data": {
+              "componentType": "message_queue",
+              "label": "Message Queue",
+              "category": "messaging",
+              "color": "#f472b6",
+              "icon": "list-ordered",
+              "attributes": {
+                "engine": "SQS",
+                "delivery": "At-least-once",
+                "dlq": true,
+                "visibilityTimeoutSec": 30
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "driver",
+            "target": "gw"
+          },
+          {
+            "id": "e2",
+            "source": "rider",
+            "target": "gw"
+          },
+          {
+            "id": "e3",
+            "source": "gw",
+            "target": "dispatch"
+          },
+          {
+            "id": "e4",
+            "source": "dispatch",
+            "target": "stream",
+            "label": "locations"
+          },
+          {
+            "id": "e5",
+            "source": "stream",
+            "target": "geo"
+          },
+          {
+            "id": "e6",
+            "source": "dispatch",
+            "target": "geo",
+            "label": "nearby"
+          },
+          {
+            "id": "e7",
+            "source": "dispatch",
+            "target": "trips"
+          },
+          {
+            "id": "e8",
+            "source": "dispatch",
+            "target": "q",
+            "label": "notifications"
+          }
+        ]
+      },
+      "rationale": "Location stream updates a geo index; SQL holds trip lifecycle; queue notifies parties asynchronously."
+    },
+    {
+      "id": "season-video-streaming",
+      "title": "Video Streaming Platform",
+      "difficulty": "hard",
+      "track": "classic",
+      "summary": "Upload, transcode, and CDN-deliver adaptive bitrate video.",
+      "description": "Users upload videos; system processes encodings and serves ABR streams globally with low startup latency.",
+      "requirements": [
+        "Upload to object storage",
+        "Async transcoding pipeline",
+        "ABR packaging",
+        "Global CDN delivery",
+        "Metadata catalog + search"
+      ],
+      "constraints": {
+        "expectedQps": "10k concurrent viewers / region",
+        "latencySla": "Startup < 2s on good networks",
+        "dataVolume": "PB object storage",
+        "regions": "Global CDN"
+      },
+      "evaluationFocus": [
+        "pipeline",
+        "object storage",
+        "CDN",
+        "metadata scale"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "web",
+            "type": "web_client",
+            "position": {
+              "x": 0,
+              "y": 100
+            },
+            "data": {
+              "componentType": "web_client",
+              "label": "Web Client",
+              "category": "client",
+              "color": "#38bdf8",
+              "icon": "monitor",
+              "attributes": {
+                "device": "Both",
+                "rendering": "SSR"
+              }
+            }
+          },
+          {
+            "id": "cdn",
+            "type": "cdn",
+            "position": {
+              "x": 180,
+              "y": 40
+            },
+            "data": {
+              "componentType": "cdn",
+              "label": "CDN",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "globe-2",
+              "attributes": {
+                "regions": "Global",
+                "cacheTtl": 300,
+                "httpsOnly": true
+              }
+            }
+          },
+          {
+            "id": "api",
+            "type": "api_gateway",
+            "position": {
+              "x": 180,
+              "y": 160
+            },
+            "data": {
+              "componentType": "api_gateway",
+              "label": "API Gateway",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "door-open",
+              "attributes": {
+                "auth": "JWT",
+                "rateLimitRps": 1000,
+                "timeoutMs": 3000
+              }
+            }
+          },
+          {
+            "id": "obj",
+            "type": "object_storage",
+            "position": {
+              "x": 360,
+              "y": 40
+            },
+            "data": {
+              "componentType": "object_storage",
+              "label": "Object Storage",
+              "category": "storage",
+              "color": "#fb923c",
+              "icon": "hard-drive",
+              "attributes": {
+                "engine": "S3",
+                "sizeTb": 50,
+                "durability": "11 nines",
+                "replication": "Cross-region"
+              }
+            }
+          },
+          {
+            "id": "q",
+            "type": "message_queue",
+            "position": {
+              "x": 360,
+              "y": 160
+            },
+            "data": {
+              "componentType": "message_queue",
+              "label": "Message Queue",
+              "category": "messaging",
+              "color": "#f472b6",
+              "icon": "list-ordered",
+              "attributes": {
+                "engine": "SQS",
+                "delivery": "At-least-once",
+                "dlq": true,
+                "visibilityTimeoutSec": 30
+              }
+            }
+          },
+          {
+            "id": "worker",
+            "type": "worker",
+            "position": {
+              "x": 540,
+              "y": 160
+            },
+            "data": {
+              "componentType": "worker",
+              "label": "Background Worker",
+              "category": "compute",
+              "color": "#34d399",
+              "icon": "cog",
+              "attributes": {
+                "concurrency": 10,
+                "retryPolicy": "Exponential backoff",
+                "replicas": 2
+              }
+            }
+          },
+          {
+            "id": "meta",
+            "type": "sql_database",
+            "position": {
+              "x": 540,
+              "y": 40
+            },
+            "data": {
+              "componentType": "sql_database",
+              "label": "SQL Database",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "database",
+              "attributes": {
+                "engine": "PostgreSQL",
+                "sizeGb": 100,
+                "replication": "Async replicas",
+                "sharding": false,
+                "shardKey": "None",
+                "partitionStrategy": "None",
+                "shardCount": 1,
+                "readReplicas": 1
+              }
+            }
+          },
+          {
+            "id": "search",
+            "type": "search_index",
+            "position": {
+              "x": 720,
+              "y": 100
+            },
+            "data": {
+              "componentType": "search_index",
+              "label": "Search Index",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "search",
+              "attributes": {
+                "engine": "Elasticsearch",
+                "replicas": 1,
+                "shards": 3
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "web",
+            "target": "cdn",
+            "label": "playback"
+          },
+          {
+            "id": "e2",
+            "source": "web",
+            "target": "api",
+            "label": "upload/meta"
+          },
+          {
+            "id": "e3",
+            "source": "api",
+            "target": "obj"
+          },
+          {
+            "id": "e4",
+            "source": "api",
+            "target": "q",
+            "label": "transcode job"
+          },
+          {
+            "id": "e5",
+            "source": "q",
+            "target": "worker"
+          },
+          {
+            "id": "e6",
+            "source": "worker",
+            "target": "obj",
+            "label": "renditions"
+          },
+          {
+            "id": "e7",
+            "source": "api",
+            "target": "meta"
+          },
+          {
+            "id": "e8",
+            "source": "meta",
+            "target": "search"
+          },
+          {
+            "id": "e9",
+            "source": "cdn",
+            "target": "obj",
+            "label": "origin"
+          }
+        ]
+      },
+      "rationale": "Object storage + async workers for encode; CDN for global ABR; SQL/search for catalog."
+    },
+    {
+      "id": "season-payment-system",
+      "title": "Payment Processing",
+      "difficulty": "hard",
+      "track": "classic",
+      "summary": "Idempotent payments with ledger, retries, and auditability.",
+      "description": "Design charge/refund flows with strong correctness, idempotency keys, and reconciliation.",
+      "requirements": [
+        "Authorize + capture",
+        "Idempotent APIs",
+        "Double-entry ledger",
+        "Retry-safe webhooks",
+        "Audit / compliance trail"
+      ],
+      "constraints": {
+        "expectedQps": "5k TPS peak",
+        "latencySla": "Authorize p99 < 400ms",
+        "availability": "99.99%",
+        "consistency": "Strong for balances"
+      },
+      "evaluationFocus": [
+        "idempotency",
+        "ledger design",
+        "exactly-once effects",
+        "failure recovery"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "c",
+            "type": "web_client",
+            "position": {
+              "x": 0,
+              "y": 100
+            },
+            "data": {
+              "componentType": "web_client",
+              "label": "Web Client",
+              "category": "client",
+              "color": "#38bdf8",
+              "icon": "monitor",
+              "attributes": {
+                "device": "Both",
+                "rendering": "SSR"
+              }
+            }
+          },
+          {
+            "id": "gw",
+            "type": "api_gateway",
+            "position": {
+              "x": 160,
+              "y": 100
+            },
+            "data": {
+              "componentType": "api_gateway",
+              "label": "API Gateway",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "door-open",
+              "attributes": {
+                "auth": "JWT",
+                "rateLimitRps": 1000,
+                "timeoutMs": 3000
+              }
+            }
+          },
+          {
+            "id": "pay",
+            "type": "microservice",
+            "position": {
+              "x": 320,
+              "y": 100
+            },
+            "data": {
+              "componentType": "microservice",
+              "label": "Microservice",
+              "category": "compute",
+              "color": "#34d399",
+              "icon": "boxes",
+              "attributes": {
+                "name": "payments",
+                "replicas": 3,
+                "timeoutMs": 2000
+              }
+            }
+          },
+          {
+            "id": "ledger",
+            "type": "sql_database",
+            "position": {
+              "x": 500,
+              "y": 40
+            },
+            "data": {
+              "componentType": "sql_database",
+              "label": "SQL Database",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "database",
+              "attributes": {
+                "engine": "PostgreSQL",
+                "sizeGb": 100,
+                "replication": "Sync multi-AZ",
+                "sharding": false,
+                "shardKey": "None",
+                "partitionStrategy": "None",
+                "shardCount": 1,
+                "readReplicas": 1
+              }
+            }
+          },
+          {
+            "id": "q",
+            "type": "message_queue",
+            "position": {
+              "x": 500,
+              "y": 160
+            },
+            "data": {
+              "componentType": "message_queue",
+              "label": "Message Queue",
+              "category": "messaging",
+              "color": "#f472b6",
+              "icon": "list-ordered",
+              "attributes": {
+                "engine": "SQS",
+                "delivery": "At-least-once",
+                "dlq": true,
+                "visibilityTimeoutSec": 30
+              }
+            }
+          },
+          {
+            "id": "worker",
+            "type": "worker",
+            "position": {
+              "x": 680,
+              "y": 160
+            },
+            "data": {
+              "componentType": "worker",
+              "label": "Background Worker",
+              "category": "compute",
+              "color": "#34d399",
+              "icon": "cog",
+              "attributes": {
+                "concurrency": 10,
+                "retryPolicy": "Exponential backoff",
+                "replicas": 2
+              }
+            }
+          },
+          {
+            "id": "secrets",
+            "type": "secrets_manager",
+            "position": {
+              "x": 320,
+              "y": 220
+            },
+            "data": {
+              "componentType": "secrets_manager",
+              "label": "Secrets Manager",
+              "category": "security",
+              "color": "#ef4444",
+              "icon": "lock",
+              "attributes": {
+                "rotation": true,
+                "engine": "Vault"
+              }
+            }
+          },
+          {
+            "id": "log",
+            "type": "logging",
+            "position": {
+              "x": 680,
+              "y": 40
+            },
+            "data": {
+              "componentType": "logging",
+              "label": "Logging",
+              "category": "observability",
+              "color": "#94a3b8",
+              "icon": "scroll-text",
+              "attributes": {
+                "stack": "ELK",
+                "retentionDays": 30
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "c",
+            "target": "gw"
+          },
+          {
+            "id": "e2",
+            "source": "gw",
+            "target": "pay"
+          },
+          {
+            "id": "e3",
+            "source": "pay",
+            "target": "ledger"
+          },
+          {
+            "id": "e4",
+            "source": "pay",
+            "target": "q",
+            "label": "webhooks"
+          },
+          {
+            "id": "e5",
+            "source": "q",
+            "target": "worker"
+          },
+          {
+            "id": "e6",
+            "source": "pay",
+            "target": "secrets"
+          },
+          {
+            "id": "e7",
+            "source": "pay",
+            "target": "log",
+            "label": "audit"
+          }
+        ]
+      },
+      "rationale": "Sync multi-AZ SQL ledger for money correctness; async queue for webhooks; secrets and audit logging for compliance."
+    },
+    {
+      "id": "season-multi-tenant-saas",
+      "title": "Multi-tenant SaaS Data Plane",
+      "difficulty": "hard",
+      "track": "classic",
+      "summary": "Isolate tenants while sharing infra efficiently.",
+      "description": "Design storage and compute isolation for a B2B SaaS with noisy-neighbor controls and per-tenant config.",
+      "requirements": [
+        "Tenant isolation model",
+        "Per-tenant config / feature flags",
+        "Noisy neighbor protection",
+        "Backup / restore per tenant",
+        "Migrate heavy tenants to dedicated"
+      ],
+      "constraints": {
+        "expectedQps": "Mixed; some whales",
+        "consistency": "Strong per tenant",
+        "regions": "US + EU residency options"
+      },
+      "evaluationFocus": [
+        "isolation strategy",
+        "sharding by tenant",
+        "rate limits",
+        "data residency"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "c",
+            "type": "web_client",
+            "position": {
+              "x": 0,
+              "y": 100
+            },
+            "data": {
+              "componentType": "web_client",
+              "label": "Web Client",
+              "category": "client",
+              "color": "#38bdf8",
+              "icon": "monitor",
+              "attributes": {
+                "device": "Both",
+                "rendering": "SSR"
+              }
+            }
+          },
+          {
+            "id": "gw",
+            "type": "api_gateway",
+            "position": {
+              "x": 160,
+              "y": 100
+            },
+            "data": {
+              "componentType": "api_gateway",
+              "label": "API Gateway",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "door-open",
+              "attributes": {
+                "auth": "JWT",
+                "rateLimitRps": 1000,
+                "timeoutMs": 3000
+              }
+            }
+          },
+          {
+            "id": "rl",
+            "type": "rate_limiter",
+            "position": {
+              "x": 320,
+              "y": 40
+            },
+            "data": {
+              "componentType": "rate_limiter",
+              "label": "Rate Limiter",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "gauge",
+              "attributes": {
+                "strategy": "Token bucket",
+                "limitRps": 100,
+                "scope": "Per user"
+              }
+            }
+          },
+          {
+            "id": "app",
+            "type": "app_server",
+            "position": {
+              "x": 320,
+              "y": 160
+            },
+            "data": {
+              "componentType": "app_server",
+              "label": "App Server",
+              "category": "compute",
+              "color": "#34d399",
+              "icon": "server",
+              "attributes": {
+                "stateless": true,
+                "replicas": 3,
+                "autoScale": true,
+                "region": "Multi-AZ"
+              }
+            }
+          },
+          {
+            "id": "db",
+            "type": "sql_database",
+            "position": {
+              "x": 500,
+              "y": 100
+            },
+            "data": {
+              "componentType": "sql_database",
+              "label": "SQL Database",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "database",
+              "attributes": {
+                "engine": "PostgreSQL",
+                "sizeGb": 100,
+                "replication": "Async replicas",
+                "sharding": true,
+                "shardKey": "tenant_id",
+                "partitionStrategy": "Directory",
+                "shardCount": 1,
+                "readReplicas": 1
+              }
+            }
+          },
+          {
+            "id": "auth",
+            "type": "auth_service",
+            "position": {
+              "x": 160,
+              "y": 200
+            },
+            "data": {
+              "componentType": "auth_service",
+              "label": "Auth Service",
+              "category": "security",
+              "color": "#ef4444",
+              "icon": "key",
+              "attributes": {
+                "methods": "OAuth/OIDC",
+                "tokenTtlMin": 60,
+                "mfa": false
+              }
+            }
+          },
+          {
+            "id": "obj",
+            "type": "object_storage",
+            "position": {
+              "x": 500,
+              "y": 200
+            },
+            "data": {
+              "componentType": "object_storage",
+              "label": "Object Storage",
+              "category": "storage",
+              "color": "#fb923c",
+              "icon": "hard-drive",
+              "attributes": {
+                "engine": "S3",
+                "sizeTb": 50,
+                "durability": "11 nines",
+                "replication": "Cross-region"
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "c",
+            "target": "gw"
+          },
+          {
+            "id": "e2",
+            "source": "gw",
+            "target": "rl"
+          },
+          {
+            "id": "e3",
+            "source": "rl",
+            "target": "app"
+          },
+          {
+            "id": "e4",
+            "source": "app",
+            "target": "db"
+          },
+          {
+            "id": "e5",
+            "source": "gw",
+            "target": "auth"
+          },
+          {
+            "id": "e6",
+            "source": "app",
+            "target": "obj"
+          }
+        ]
+      },
+      "rationale": "Tenant_id sharding + directory for whales, gateway rate limits, and auth boundary enforce isolation."
+    },
+    {
+      "id": "season-product-search",
+      "title": "Product Search Service",
+      "difficulty": "medium",
+      "track": "classic",
+      "summary": "Low-latency product search with indexing pipeline.",
+      "description": "Index catalog updates and serve ranked search with filters and autocomplete.",
+      "requirements": [
+        "Full-text + filters",
+        "Near-real-time index updates",
+        "Autocomplete",
+        "Handle reindex without downtime",
+        "Observe query latency"
+      ],
+      "constraints": {
+        "expectedQps": "20k query QPS",
+        "latencySla": "p99 < 150ms",
+        "dataVolume": "50M SKUs"
+      },
+      "evaluationFocus": [
+        "index pipeline",
+        "query path",
+        "reindex",
+        "caching"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "c",
+            "type": "web_client",
+            "position": {
+              "x": 0,
+              "y": 80
+            },
+            "data": {
+              "componentType": "web_client",
+              "label": "Web Client",
+              "category": "client",
+              "color": "#38bdf8",
+              "icon": "monitor",
+              "attributes": {
+                "device": "Both",
+                "rendering": "SSR"
+              }
+            }
+          },
+          {
+            "id": "gw",
+            "type": "api_gateway",
+            "position": {
+              "x": 160,
+              "y": 80
+            },
+            "data": {
+              "componentType": "api_gateway",
+              "label": "API Gateway",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "door-open",
+              "attributes": {
+                "auth": "JWT",
+                "rateLimitRps": 1000,
+                "timeoutMs": 3000
+              }
+            }
+          },
+          {
+            "id": "search",
+            "type": "search_index",
+            "position": {
+              "x": 360,
+              "y": 40
+            },
+            "data": {
+              "componentType": "search_index",
+              "label": "Search Index",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "search",
+              "attributes": {
+                "engine": "Elasticsearch",
+                "replicas": 1,
+                "shards": 3
+              }
+            }
+          },
+          {
+            "id": "api",
+            "type": "app_server",
+            "position": {
+              "x": 360,
+              "y": 140
+            },
+            "data": {
+              "componentType": "app_server",
+              "label": "App Server",
+              "category": "compute",
+              "color": "#34d399",
+              "icon": "server",
+              "attributes": {
+                "stateless": true,
+                "replicas": 3,
+                "autoScale": true,
+                "region": "Multi-AZ"
+              }
+            }
+          },
+          {
+            "id": "q",
+            "type": "message_queue",
+            "position": {
+              "x": 540,
+              "y": 140
+            },
+            "data": {
+              "componentType": "message_queue",
+              "label": "Message Queue",
+              "category": "messaging",
+              "color": "#f472b6",
+              "icon": "list-ordered",
+              "attributes": {
+                "engine": "SQS",
+                "delivery": "At-least-once",
+                "dlq": true,
+                "visibilityTimeoutSec": 30
+              }
+            }
+          },
+          {
+            "id": "idx",
+            "type": "worker",
+            "position": {
+              "x": 720,
+              "y": 140
+            },
+            "data": {
+              "componentType": "worker",
+              "label": "Background Worker",
+              "category": "compute",
+              "color": "#34d399",
+              "icon": "cog",
+              "attributes": {
+                "concurrency": 10,
+                "retryPolicy": "Exponential backoff",
+                "replicas": 2
+              }
+            }
+          },
+          {
+            "id": "db",
+            "type": "sql_database",
+            "position": {
+              "x": 540,
+              "y": 40
+            },
+            "data": {
+              "componentType": "sql_database",
+              "label": "SQL Database",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "database",
+              "attributes": {
+                "engine": "PostgreSQL",
+                "sizeGb": 100,
+                "replication": "Async replicas",
+                "sharding": false,
+                "shardKey": "None",
+                "partitionStrategy": "None",
+                "shardCount": 1,
+                "readReplicas": 1
+              }
+            }
+          },
+          {
+            "id": "cache",
+            "type": "cache",
+            "position": {
+              "x": 160,
+              "y": 180
+            },
+            "data": {
+              "componentType": "cache",
+              "label": "Cache",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "layers",
+              "attributes": {
+                "engine": "Redis",
+                "sizeGb": 16,
+                "ttlSeconds": 300,
+                "eviction": "LRU",
+                "clustered": true
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "c",
+            "target": "gw"
+          },
+          {
+            "id": "e2",
+            "source": "gw",
+            "target": "api"
+          },
+          {
+            "id": "e3",
+            "source": "api",
+            "target": "search",
+            "label": "query"
+          },
+          {
+            "id": "e4",
+            "source": "api",
+            "target": "cache"
+          },
+          {
+            "id": "e5",
+            "source": "db",
+            "target": "q",
+            "label": "CDC"
+          },
+          {
+            "id": "e6",
+            "source": "q",
+            "target": "idx"
+          },
+          {
+            "id": "e7",
+            "source": "idx",
+            "target": "search",
+            "label": "index"
+          }
+        ]
+      },
+      "rationale": "Query path hits search index (+ cache); async workers keep index fresh from DB change events."
+    },
+    {
+      "id": "season-global-static",
+      "title": "Global Static Asset Delivery",
+      "difficulty": "easy",
+      "track": "classic",
+      "summary": "Serve static assets with CDN, cache headers, and origin shield.",
+      "description": "Design delivery for JS/CSS/images with high hit ratio and controlled invalidation.",
+      "requirements": [
+        "Global CDN",
+        "Cache-control strategy",
+        "Invalidation / versioned URLs",
+        "Origin protection",
+        "HTTPS + WAF basics"
+      ],
+      "constraints": {
+        "expectedQps": "200k asset requests/sec",
+        "latencySla": "p99 < 100ms edge",
+        "regions": "Global"
+      },
+      "evaluationFocus": [
+        "CDN",
+        "cache keys",
+        "origin shield",
+        "security edge"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "c",
+            "type": "web_client",
+            "position": {
+              "x": 0,
+              "y": 80
+            },
+            "data": {
+              "componentType": "web_client",
+              "label": "Web Client",
+              "category": "client",
+              "color": "#38bdf8",
+              "icon": "monitor",
+              "attributes": {
+                "device": "Both",
+                "rendering": "SSR"
+              }
+            }
+          },
+          {
+            "id": "dns",
+            "type": "dns",
+            "position": {
+              "x": 140,
+              "y": 80
+            },
+            "data": {
+              "componentType": "dns",
+              "label": "DNS",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "globe",
+              "attributes": {
+                "routing": "Latency-based",
+                "ttlSeconds": 60
+              }
+            }
+          },
+          {
+            "id": "cdn",
+            "type": "cdn",
+            "position": {
+              "x": 300,
+              "y": 80
+            },
+            "data": {
+              "componentType": "cdn",
+              "label": "CDN",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "globe-2",
+              "attributes": {
+                "regions": "Global",
+                "cacheTtl": 300,
+                "httpsOnly": true
+              }
+            }
+          },
+          {
+            "id": "waf",
+            "type": "waf",
+            "position": {
+              "x": 460,
+              "y": 80
+            },
+            "data": {
+              "componentType": "waf",
+              "label": "WAF",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "shield",
+              "attributes": {
+                "mode": "Block",
+                "ddosProtection": true
+              }
+            }
+          },
+          {
+            "id": "origin",
+            "type": "object_storage",
+            "position": {
+              "x": 620,
+              "y": 80
+            },
+            "data": {
+              "componentType": "object_storage",
+              "label": "Object Storage",
+              "category": "storage",
+              "color": "#fb923c",
+              "icon": "hard-drive",
+              "attributes": {
+                "engine": "S3",
+                "sizeTb": 50,
+                "durability": "11 nines",
+                "replication": "Cross-region"
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "c",
+            "target": "dns"
+          },
+          {
+            "id": "e2",
+            "source": "dns",
+            "target": "cdn"
+          },
+          {
+            "id": "e3",
+            "source": "cdn",
+            "target": "waf",
+            "label": "origin miss"
+          },
+          {
+            "id": "e4",
+            "source": "waf",
+            "target": "origin"
+          }
+        ]
+      },
+      "rationale": "DNS → CDN for edge hits; WAF-protected object origin for misses; versioned assets simplify invalidation."
+    },
+    {
+      "id": "season-observability-stack",
+      "title": "Observability for Microservices",
+      "difficulty": "medium",
+      "track": "classic",
+      "summary": "Metrics, logs, and traces for a microservice fleet.",
+      "description": "Design an observability stack: RED/USE metrics, structured logs, distributed traces, and alert routing.",
+      "requirements": [
+        "Metrics + dashboards",
+        "Centralized logging",
+        "Distributed tracing",
+        "Alerting on SLOs",
+        "Low overhead on services"
+      ],
+      "constraints": {
+        "expectedQps": "High cardinality careful",
+        "dataVolume": "TB/day telemetry",
+        "latencySla": "Trace ingest near-real-time"
+      },
+      "evaluationFocus": [
+        "metrics",
+        "logs",
+        "traces",
+        "cardinality"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "svc",
+            "type": "microservice",
+            "position": {
+              "x": 0,
+              "y": 100
+            },
+            "data": {
+              "componentType": "microservice",
+              "label": "Microservice",
+              "category": "compute",
+              "color": "#34d399",
+              "icon": "boxes",
+              "attributes": {
+                "name": "service",
+                "replicas": 3,
+                "timeoutMs": 2000
+              }
+            }
+          },
+          {
+            "id": "mon",
+            "type": "monitoring",
+            "position": {
+              "x": 200,
+              "y": 20
+            },
+            "data": {
+              "componentType": "monitoring",
+              "label": "Monitoring",
+              "category": "observability",
+              "color": "#94a3b8",
+              "icon": "bar-chart-3",
+              "attributes": {
+                "stack": "Prometheus+Grafana",
+                "alerting": true
+              }
+            }
+          },
+          {
+            "id": "log",
+            "type": "logging",
+            "position": {
+              "x": 200,
+              "y": 100
+            },
+            "data": {
+              "componentType": "logging",
+              "label": "Logging",
+              "category": "observability",
+              "color": "#94a3b8",
+              "icon": "scroll-text",
+              "attributes": {
+                "stack": "ELK",
+                "retentionDays": 30
+              }
+            }
+          },
+          {
+            "id": "tr",
+            "type": "tracing",
+            "position": {
+              "x": 200,
+              "y": 180
+            },
+            "data": {
+              "componentType": "tracing",
+              "label": "Distributed Tracing",
+              "category": "observability",
+              "color": "#94a3b8",
+              "icon": "git-merge",
+              "attributes": {
+                "stack": "OpenTelemetry",
+                "sampleRate": 10
+              }
+            }
+          },
+          {
+            "id": "ts",
+            "type": "time_series_db",
+            "position": {
+              "x": 400,
+              "y": 20
+            },
+            "data": {
+              "componentType": "time_series_db",
+              "label": "Time-Series DB",
+              "category": "data",
+              "color": "#fbbf24",
+              "icon": "activity",
+              "attributes": {
+                "engine": "TimescaleDB",
+                "retentionDays": 30
+              }
+            }
+          },
+          {
+            "id": "obj",
+            "type": "object_storage",
+            "position": {
+              "x": 400,
+              "y": 100
+            },
+            "data": {
+              "componentType": "object_storage",
+              "label": "Object Storage",
+              "category": "storage",
+              "color": "#fb923c",
+              "icon": "hard-drive",
+              "attributes": {
+                "engine": "S3",
+                "sizeTb": 50,
+                "durability": "11 nines",
+                "replication": "Cross-region"
+              }
+            }
+          },
+          {
+            "id": "q",
+            "type": "pubsub",
+            "position": {
+              "x": 100,
+              "y": 200
+            },
+            "data": {
+              "componentType": "pubsub",
+              "label": "Pub/Sub",
+              "category": "messaging",
+              "color": "#f472b6",
+              "icon": "radio",
+              "attributes": {
+                "engine": "SNS",
+                "fanout": "Push",
+                "ordering": false
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "svc",
+            "target": "mon"
+          },
+          {
+            "id": "e2",
+            "source": "svc",
+            "target": "log"
+          },
+          {
+            "id": "e3",
+            "source": "svc",
+            "target": "tr"
+          },
+          {
+            "id": "e4",
+            "source": "mon",
+            "target": "ts"
+          },
+          {
+            "id": "e5",
+            "source": "log",
+            "target": "obj"
+          },
+          {
+            "id": "e6",
+            "source": "svc",
+            "target": "q",
+            "label": "events"
+          }
+        ]
+      },
+      "rationale": "Three pillars with TSDB for metrics and object storage for log retention; pubsub for async event export."
+    },
+    {
+      "id": "season-async-email-pipeline",
+      "title": "Async Notification Pipeline",
+      "difficulty": "easy",
+      "track": "classic",
+      "summary": "Decouple user actions from email/SMS delivery with retries and DLQ.",
+      "description": "After signup or order events, send notifications reliably without blocking the request path.",
+      "requirements": [
+        "Async queue between API and workers",
+        "Retries with backoff",
+        "Dead-letter queue",
+        "Idempotent send",
+        "Observe lag and failures"
+      ],
+      "constraints": {
+        "expectedQps": "2k events/sec peak",
+        "latencySla": "Email within 60s p99",
+        "availability": "At-least-once OK"
+      },
+      "evaluationFocus": [
+        "queue",
+        "workers",
+        "DLQ",
+        "idempotency"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "api",
+            "type": "app_server",
+            "position": {
+              "x": 0,
+              "y": 80
+            },
+            "data": {
+              "componentType": "app_server",
+              "label": "App Server",
+              "category": "compute",
+              "color": "#34d399",
+              "icon": "server",
+              "attributes": {
+                "stateless": true,
+                "replicas": 3,
+                "autoScale": true,
+                "region": "Multi-AZ"
+              }
+            }
+          },
+          {
+            "id": "q",
+            "type": "message_queue",
+            "position": {
+              "x": 200,
+              "y": 80
+            },
+            "data": {
+              "componentType": "message_queue",
+              "label": "Message Queue",
+              "category": "messaging",
+              "color": "#f472b6",
+              "icon": "list-ordered",
+              "attributes": {
+                "engine": "SQS",
+                "delivery": "At-least-once",
+                "dlq": true,
+                "visibilityTimeoutSec": 30
+              }
+            }
+          },
+          {
+            "id": "worker",
+            "type": "worker",
+            "position": {
+              "x": 400,
+              "y": 80
+            },
+            "data": {
+              "componentType": "worker",
+              "label": "Background Worker",
+              "category": "compute",
+              "color": "#34d399",
+              "icon": "cog",
+              "attributes": {
+                "concurrency": 10,
+                "retryPolicy": "Exponential backoff",
+                "replicas": 2
+              }
+            }
+          },
+          {
+            "id": "fn",
+            "type": "serverless",
+            "position": {
+              "x": 600,
+              "y": 80
+            },
+            "data": {
+              "componentType": "serverless",
+              "label": "Serverless Function",
+              "category": "compute",
+              "color": "#34d399",
+              "icon": "zap",
+              "attributes": {
+                "runtime": "Node",
+                "memoryMb": 512,
+                "timeoutMs": 10000,
+                "concurrency": 100
+              }
+            }
+          },
+          {
+            "id": "mon",
+            "type": "monitoring",
+            "position": {
+              "x": 400,
+              "y": 180
+            },
+            "data": {
+              "componentType": "monitoring",
+              "label": "Monitoring",
+              "category": "observability",
+              "color": "#94a3b8",
+              "icon": "bar-chart-3",
+              "attributes": {
+                "stack": "Prometheus+Grafana",
+                "alerting": true
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "api",
+            "target": "q",
+            "label": "enqueue"
+          },
+          {
+            "id": "e2",
+            "source": "q",
+            "target": "worker"
+          },
+          {
+            "id": "e3",
+            "source": "worker",
+            "target": "fn",
+            "label": "provider send"
+          },
+          {
+            "id": "e4",
+            "source": "worker",
+            "target": "mon"
+          }
+        ]
+      },
+      "rationale": "API enqueues; workers send with DLQ-backed queue; monitoring tracks lag and failures."
+    },
+    {
+      "id": "season-rag-support",
+      "title": "RAG Support Agent",
+      "difficulty": "medium",
+      "track": "agentic",
+      "summary": "Customer support agent grounded on a knowledge base with span evals.",
+      "description": "Design an agent that answers support questions using RAG, tool loops, and quality measurement.",
+      "requirements": [
+        "Retrieve relevant docs",
+        "Grounded answers with citations",
+        "Multi-step tool→LLM loop",
+        "Span and/or e2e evals",
+        "Guardrails for unsafe content"
+      ],
+      "constraints": {
+        "tokenBudget": "8k context preferred",
+        "maxSteps": "6 tool steps",
+        "latencySla": "p95 < 8s"
+      },
+      "evaluationFocus": [
+        "model selection",
+        "RAG quality",
+        "tool loop edges",
+        "evals"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "c",
+            "type": "web_client",
+            "position": {
+              "x": 0,
+              "y": 100
+            },
+            "data": {
+              "componentType": "web_client",
+              "label": "Web Client",
+              "category": "client",
+              "color": "#38bdf8",
+              "icon": "monitor",
+              "attributes": {
+                "device": "Both",
+                "rendering": "SSR"
+              }
+            }
+          },
+          {
+            "id": "gw",
+            "type": "api_gateway",
+            "position": {
+              "x": 140,
+              "y": 100
+            },
+            "data": {
+              "componentType": "api_gateway",
+              "label": "API Gateway",
+              "category": "edge",
+              "color": "#a78bfa",
+              "icon": "door-open",
+              "attributes": {
+                "auth": "JWT",
+                "rateLimitRps": 1000,
+                "timeoutMs": 3000
+              }
+            }
+          },
+          {
+            "id": "agent",
+            "type": "agent",
+            "position": {
+              "x": 300,
+              "y": 100
+            },
+            "data": {
+              "componentType": "agent",
+              "label": "Agent",
+              "category": "agent",
+              "color": "#c084fc",
+              "icon": "bot",
+              "attributes": {
+                "role": "Specialist",
+                "maxSteps": 6,
+                "pattern": "ReAct",
+                "memoryEnabled": true,
+                "parallelToolCalls": false
+              }
+            }
+          },
+          {
+            "id": "llm",
+            "type": "llm_model",
+            "position": {
+              "x": 460,
+              "y": 20
+            },
+            "data": {
+              "componentType": "llm_model",
+              "label": "LLM / Model",
+              "category": "agent",
+              "color": "#c084fc",
+              "icon": "brain",
+              "attributes": {
+                "provider": "SpaceXAI/xAI",
+                "model": "grok-4.5",
+                "temperature": 0.2,
+                "maxTokens": 4096,
+                "contextWindow": "128k",
+                "structuredOutput": true
+              }
+            }
+          },
+          {
+            "id": "rag",
+            "type": "tool_rag",
+            "position": {
+              "x": 460,
+              "y": 100
+            },
+            "data": {
+              "componentType": "tool_rag",
+              "label": "RAG Retriever Tool",
+              "category": "tools",
+              "color": "#22d3ee",
+              "icon": "book-open",
+              "attributes": {
+                "topK": 5,
+                "searchType": "Hybrid",
+                "rerank": true,
+                "filters": true
+              }
+            }
+          },
+          {
+            "id": "vdb",
+            "type": "vector_db",
+            "position": {
+              "x": 620,
+              "y": 100
+            },
+            "data": {
+              "componentType": "vector_db",
+              "label": "Vector Database",
+              "category": "memory",
+              "color": "#a3e635",
+              "icon": "box",
+              "attributes": {
+                "engine": "pgvector",
+                "dimensions": 1536,
+                "metric": "Cosine",
+                "sharding": false,
+                "replicas": 1
+              }
+            }
+          },
+          {
+            "id": "emb",
+            "type": "embedding_model",
+            "position": {
+              "x": 620,
+              "y": 20
+            },
+            "data": {
+              "componentType": "embedding_model",
+              "label": "Embedding Model",
+              "category": "memory",
+              "color": "#a3e635",
+              "icon": "binary",
+              "attributes": {
+                "model": "text-embedding-3-small",
+                "batchSize": 64
+              }
+            }
+          },
+          {
+            "id": "guard",
+            "type": "guardrails",
+            "position": {
+              "x": 300,
+              "y": 200
+            },
+            "data": {
+              "componentType": "guardrails",
+              "label": "Guardrails",
+              "category": "orchestration",
+              "color": "#f9a8d4",
+              "icon": "shield-check",
+              "attributes": {
+                "inputFilter": true,
+                "outputFilter": true,
+                "toolAllowlist": true,
+                "piiRedaction": true
+              }
+            }
+          },
+          {
+            "id": "span",
+            "type": "span_eval",
+            "position": {
+              "x": 460,
+              "y": 200
+            },
+            "data": {
+              "componentType": "span_eval",
+              "label": "Span / Step Eval",
+              "category": "evals",
+              "color": "#facc15",
+              "icon": "microscope",
+              "attributes": {
+                "metrics": "Mixed",
+                "judge": "LLM-as-judge",
+                "sampleRate": 10
+              }
+            }
+          },
+          {
+            "id": "trace",
+            "type": "trace_collector",
+            "position": {
+              "x": 620,
+              "y": 200
+            },
+            "data": {
+              "componentType": "trace_collector",
+              "label": "Agent Trace Collector",
+              "category": "evals",
+              "color": "#facc15",
+              "icon": "waypoints",
+              "attributes": {
+                "backend": "OpenTelemetry",
+                "storePrompts": true,
+                "piiScrub": true
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "c",
+            "target": "gw"
+          },
+          {
+            "id": "e2",
+            "source": "gw",
+            "target": "agent"
+          },
+          {
+            "id": "e3",
+            "source": "agent",
+            "target": "llm"
+          },
+          {
+            "id": "e4",
+            "source": "agent",
+            "target": "rag"
+          },
+          {
+            "id": "e5",
+            "source": "rag",
+            "target": "vdb"
+          },
+          {
+            "id": "e6",
+            "source": "emb",
+            "target": "vdb"
+          },
+          {
+            "id": "e7",
+            "source": "agent",
+            "target": "guard"
+          },
+          {
+            "id": "e8",
+            "source": "agent",
+            "target": "span"
+          },
+          {
+            "id": "e9",
+            "source": "span",
+            "target": "trace"
+          }
+        ]
+      },
+      "rationale": "Agent loops LLM + RAG over a vector index with embeddings; guardrails and span evals close the quality loop."
+    },
+    {
+      "id": "season-research-agent",
+      "title": "Web Research Agent",
+      "difficulty": "medium",
+      "track": "agentic",
+      "summary": "Multi-step research with web search and synthesis.",
+      "description": "Agent plans queries, searches the web, stores notes, and produces a sourced brief.",
+      "requirements": [
+        "Plan research steps",
+        "Web search tool use",
+        "Memory for intermediate notes",
+        "Cited synthesis",
+        "Traceability of steps"
+      ],
+      "constraints": {
+        "maxSteps": "12",
+        "tokenBudget": "32k",
+        "latencySla": "Job may run minutes async"
+      },
+      "evaluationFocus": [
+        "tool loop",
+        "memory",
+        "citations",
+        "tracing"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "c",
+            "type": "web_client",
+            "position": {
+              "x": 0,
+              "y": 80
+            },
+            "data": {
+              "componentType": "web_client",
+              "label": "Web Client",
+              "category": "client",
+              "color": "#38bdf8",
+              "icon": "monitor",
+              "attributes": {
+                "device": "Both",
+                "rendering": "SSR"
+              }
+            }
+          },
+          {
+            "id": "orch",
+            "type": "workflow_orchestrator",
+            "position": {
+              "x": 160,
+              "y": 80
+            },
+            "data": {
+              "componentType": "workflow_orchestrator",
+              "label": "Workflow Orchestrator",
+              "category": "orchestration",
+              "color": "#f9a8d4",
+              "icon": "workflow",
+              "attributes": {
+                "style": "DAG graph",
+                "maxIterations": 10,
+                "checkpointing": true,
+                "humanInLoop": false
+              }
+            }
+          },
+          {
+            "id": "agent",
+            "type": "agent",
+            "position": {
+              "x": 320,
+              "y": 80
+            },
+            "data": {
+              "componentType": "agent",
+              "label": "Agent",
+              "category": "agent",
+              "color": "#c084fc",
+              "icon": "bot",
+              "attributes": {
+                "role": "Researcher",
+                "maxSteps": 12,
+                "pattern": "ReAct",
+                "memoryEnabled": true,
+                "parallelToolCalls": false
+              }
+            }
+          },
+          {
+            "id": "llm",
+            "type": "llm_model",
+            "position": {
+              "x": 480,
+              "y": 20
+            },
+            "data": {
+              "componentType": "llm_model",
+              "label": "LLM / Model",
+              "category": "agent",
+              "color": "#c084fc",
+              "icon": "brain",
+              "attributes": {
+                "provider": "SpaceXAI/xAI",
+                "model": "grok-4.5",
+                "temperature": 0.2,
+                "maxTokens": 4096,
+                "contextWindow": "128k",
+                "structuredOutput": true
+              }
+            }
+          },
+          {
+            "id": "search",
+            "type": "tool_web_search",
+            "position": {
+              "x": 480,
+              "y": 100
+            },
+            "data": {
+              "componentType": "tool_web_search",
+              "label": "Web Search Tool",
+              "category": "tools",
+              "color": "#22d3ee",
+              "icon": "search",
+              "attributes": {
+                "provider": "Tavily",
+                "maxResults": 5,
+                "recency": "Any",
+                "timeoutMs": 8000
+              }
+            }
+          },
+          {
+            "id": "mem",
+            "type": "agent_memory",
+            "position": {
+              "x": 480,
+              "y": 180
+            },
+            "data": {
+              "componentType": "agent_memory",
+              "label": "Agent Memory",
+              "category": "memory",
+              "color": "#a3e635",
+              "icon": "brain-circuit",
+              "attributes": {
+                "scope": "Session",
+                "store": "Redis",
+                "summarization": true
+              }
+            }
+          },
+          {
+            "id": "trace",
+            "type": "trace_collector",
+            "position": {
+              "x": 640,
+              "y": 80
+            },
+            "data": {
+              "componentType": "trace_collector",
+              "label": "Agent Trace Collector",
+              "category": "evals",
+              "color": "#facc15",
+              "icon": "waypoints",
+              "attributes": {
+                "backend": "OpenTelemetry",
+                "storePrompts": true,
+                "piiScrub": true
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "c",
+            "target": "orch"
+          },
+          {
+            "id": "e2",
+            "source": "orch",
+            "target": "agent"
+          },
+          {
+            "id": "e3",
+            "source": "agent",
+            "target": "llm"
+          },
+          {
+            "id": "e4",
+            "source": "agent",
+            "target": "search"
+          },
+          {
+            "id": "e5",
+            "source": "agent",
+            "target": "mem"
+          },
+          {
+            "id": "e6",
+            "source": "agent",
+            "target": "trace"
+          }
+        ]
+      },
+      "rationale": "Orchestrator runs a researcher agent with web search + memory; traces capture each tool step."
+    },
+    {
+      "id": "season-parallel-research-team",
+      "title": "Parallel Multi-Agent Research Team",
+      "difficulty": "hard",
+      "track": "agentic",
+      "summary": "Fan-out specialists then synthesize with a lead agent.",
+      "description": "Design a team: planner, parallel researchers, critic, and merger with shared memory and evals.",
+      "requirements": [
+        "Multi-agent team topology",
+        "Parallel fan-out",
+        "Shared memory / blackboard",
+        "Critic or reflection pass",
+        "E2e task evals"
+      ],
+      "constraints": {
+        "maxSteps": "20 total team steps",
+        "tokenBudget": "Budget-aware model routing",
+        "latencySla": "Batch job < 10 min"
+      },
+      "evaluationFocus": [
+        "multi-agent parallelization",
+        "routing",
+        "shared memory",
+        "e2e evals"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "c",
+            "type": "web_client",
+            "position": {
+              "x": 0,
+              "y": 120
+            },
+            "data": {
+              "componentType": "web_client",
+              "label": "Web Client",
+              "category": "client",
+              "color": "#38bdf8",
+              "icon": "monitor",
+              "attributes": {
+                "device": "Both",
+                "rendering": "SSR"
+              }
+            }
+          },
+          {
+            "id": "team",
+            "type": "multi_agent_team",
+            "position": {
+              "x": 160,
+              "y": 120
+            },
+            "data": {
+              "componentType": "multi_agent_team",
+              "label": "Multi-Agent Team",
+              "category": "agent",
+              "color": "#c084fc",
+              "icon": "users",
+              "attributes": {
+                "topology": "Supervisor",
+                "agentCount": 3,
+                "parallelism": 3,
+                "handoffStyle": "Shared scratchpad"
+              }
+            }
+          },
+          {
+            "id": "fan",
+            "type": "parallel_fanout",
+            "position": {
+              "x": 320,
+              "y": 120
+            },
+            "data": {
+              "componentType": "parallel_fanout",
+              "label": "Parallel Fan-out",
+              "category": "orchestration",
+              "color": "#f9a8d4",
+              "icon": "git-fork",
+              "attributes": {
+                "concurrency": 4,
+                "mergeStrategy": "LLM synthesize",
+                "failPolicy": "Best effort"
+              }
+            }
+          },
+          {
+            "id": "r1",
+            "type": "agent",
+            "position": {
+              "x": 480,
+              "y": 40
+            },
+            "data": {
+              "componentType": "agent",
+              "label": "Agent",
+              "category": "agent",
+              "color": "#c084fc",
+              "icon": "bot",
+              "attributes": {
+                "role": "Researcher",
+                "maxSteps": 8,
+                "pattern": "ReAct",
+                "memoryEnabled": true,
+                "parallelToolCalls": false
+              }
+            }
+          },
+          {
+            "id": "r2",
+            "type": "agent",
+            "position": {
+              "x": 480,
+              "y": 120
+            },
+            "data": {
+              "componentType": "agent",
+              "label": "Agent",
+              "category": "agent",
+              "color": "#c084fc",
+              "icon": "bot",
+              "attributes": {
+                "role": "Specialist",
+                "maxSteps": 8,
+                "pattern": "ReAct",
+                "memoryEnabled": true,
+                "parallelToolCalls": false
+              }
+            }
+          },
+          {
+            "id": "critic",
+            "type": "agent",
+            "position": {
+              "x": 480,
+              "y": 200
+            },
+            "data": {
+              "componentType": "agent",
+              "label": "Agent",
+              "category": "agent",
+              "color": "#c084fc",
+              "icon": "bot",
+              "attributes": {
+                "role": "Critic/Reflector",
+                "maxSteps": 8,
+                "pattern": "ReAct",
+                "memoryEnabled": true,
+                "parallelToolCalls": false
+              }
+            }
+          },
+          {
+            "id": "mem",
+            "type": "agent_memory",
+            "position": {
+              "x": 640,
+              "y": 120
+            },
+            "data": {
+              "componentType": "agent_memory",
+              "label": "Agent Memory",
+              "category": "memory",
+              "color": "#a3e635",
+              "icon": "brain-circuit",
+              "attributes": {
+                "scope": "Session",
+                "store": "Redis",
+                "summarization": true
+              }
+            }
+          },
+          {
+            "id": "e2e",
+            "type": "e2e_eval",
+            "position": {
+              "x": 320,
+              "y": 220
+            },
+            "data": {
+              "componentType": "e2e_eval",
+              "label": "E2E Task Eval",
+              "category": "evals",
+              "color": "#facc15",
+              "icon": "clipboard-check",
+              "attributes": {
+                "dataset": "Golden set",
+                "metrics": "Task success rate",
+                "cadence": "Nightly",
+                "gateOnDeploy": true
+              }
+            }
+          },
+          {
+            "id": "llm",
+            "type": "llm_model",
+            "position": {
+              "x": 640,
+              "y": 40
+            },
+            "data": {
+              "componentType": "llm_model",
+              "label": "LLM / Model",
+              "category": "agent",
+              "color": "#c084fc",
+              "icon": "brain",
+              "attributes": {
+                "provider": "SpaceXAI/xAI",
+                "model": "grok-4.5",
+                "temperature": 0.2,
+                "maxTokens": 4096,
+                "contextWindow": "128k",
+                "structuredOutput": true
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "c",
+            "target": "team"
+          },
+          {
+            "id": "e2",
+            "source": "team",
+            "target": "fan"
+          },
+          {
+            "id": "e3",
+            "source": "fan",
+            "target": "r1"
+          },
+          {
+            "id": "e4",
+            "source": "fan",
+            "target": "r2"
+          },
+          {
+            "id": "e5",
+            "source": "fan",
+            "target": "critic"
+          },
+          {
+            "id": "e6",
+            "source": "r1",
+            "target": "mem"
+          },
+          {
+            "id": "e7",
+            "source": "r2",
+            "target": "mem"
+          },
+          {
+            "id": "e8",
+            "source": "critic",
+            "target": "mem"
+          },
+          {
+            "id": "e9",
+            "source": "team",
+            "target": "e2e"
+          },
+          {
+            "id": "e10",
+            "source": "r1",
+            "target": "llm"
+          }
+        ]
+      },
+      "rationale": "Team + parallel fan-out runs specialists concurrently into shared memory; e2e evals gate quality."
+    },
+    {
+      "id": "season-coding-agent",
+      "title": "Coding Agent for PRs",
+      "difficulty": "hard",
+      "track": "agentic",
+      "summary": "Agent that edits code with sandboxed exec and human review gates.",
+      "description": "Design an agent that plans changes, edits files, runs tests in a sandbox, and opens a PR with human approval for risky steps.",
+      "requirements": [
+        "Code understanding + edit plan",
+        "Sandboxed code execution",
+        "Test feedback loop",
+        "Human review for merge",
+        "Prompt/version registry"
+      ],
+      "constraints": {
+        "maxSteps": "15",
+        "tokenBudget": "128k context model available",
+        "other": [
+          "No unrestricted prod access"
+        ]
+      },
+      "evaluationFocus": [
+        "tool_code_exec",
+        "human gates",
+        "feedback loops",
+        "prompt registry"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "dev",
+            "type": "web_client",
+            "position": {
+              "x": 0,
+              "y": 100
+            },
+            "data": {
+              "componentType": "web_client",
+              "label": "Web Client",
+              "category": "client",
+              "color": "#38bdf8",
+              "icon": "monitor",
+              "attributes": {
+                "device": "Both",
+                "rendering": "SSR"
+              }
+            }
+          },
+          {
+            "id": "agent",
+            "type": "agent",
+            "position": {
+              "x": 160,
+              "y": 100
+            },
+            "data": {
+              "componentType": "agent",
+              "label": "Agent",
+              "category": "agent",
+              "color": "#c084fc",
+              "icon": "bot",
+              "attributes": {
+                "role": "Coder",
+                "maxSteps": 15,
+                "pattern": "ReAct",
+                "memoryEnabled": true,
+                "parallelToolCalls": false
+              }
+            }
+          },
+          {
+            "id": "llm",
+            "type": "llm_model",
+            "position": {
+              "x": 320,
+              "y": 20
+            },
+            "data": {
+              "componentType": "llm_model",
+              "label": "LLM / Model",
+              "category": "agent",
+              "color": "#c084fc",
+              "icon": "brain",
+              "attributes": {
+                "provider": "SpaceXAI/xAI",
+                "model": "grok-4.5",
+                "temperature": 0.2,
+                "maxTokens": 4096,
+                "contextWindow": "128k",
+                "structuredOutput": true
+              }
+            }
+          },
+          {
+            "id": "code",
+            "type": "tool_code_exec",
+            "position": {
+              "x": 320,
+              "y": 100
+            },
+            "data": {
+              "componentType": "tool_code_exec",
+              "label": "Code Executor Tool",
+              "category": "tools",
+              "color": "#22d3ee",
+              "icon": "terminal",
+              "attributes": {
+                "runtime": "Python",
+                "sandbox": "Container",
+                "timeoutSec": 30,
+                "networkAccess": false
+              }
+            }
+          },
+          {
+            "id": "fn",
+            "type": "tool_function",
+            "position": {
+              "x": 320,
+              "y": 180
+            },
+            "data": {
+              "componentType": "tool_function",
+              "label": "Function / API Tool",
+              "category": "tools",
+              "color": "#22d3ee",
+              "icon": "wrench",
+              "attributes": {
+                "name": "git_pr_api",
+                "auth": "API key",
+                "idempotent": true,
+                "schemaValidated": true
+              }
+            }
+          },
+          {
+            "id": "human",
+            "type": "human_review",
+            "position": {
+              "x": 480,
+              "y": 100
+            },
+            "data": {
+              "componentType": "human_review",
+              "label": "Human Review Gate",
+              "category": "orchestration",
+              "color": "#f9a8d4",
+              "icon": "user-check",
+              "attributes": {
+                "trigger": "High risk actions",
+                "slaMinutes": 30
+              }
+            }
+          },
+          {
+            "id": "prompts",
+            "type": "prompt_registry",
+            "position": {
+              "x": 160,
+              "y": 200
+            },
+            "data": {
+              "componentType": "prompt_registry",
+              "label": "Prompt Registry",
+              "category": "evals",
+              "color": "#facc15",
+              "icon": "notebook-pen",
+              "attributes": {
+                "versioning": true,
+                "abTesting": false
+              }
+            }
+          },
+          {
+            "id": "span",
+            "type": "span_eval",
+            "position": {
+              "x": 480,
+              "y": 200
+            },
+            "data": {
+              "componentType": "span_eval",
+              "label": "Span / Step Eval",
+              "category": "evals",
+              "color": "#facc15",
+              "icon": "microscope",
+              "attributes": {
+                "metrics": "Mixed",
+                "judge": "LLM-as-judge",
+                "sampleRate": 10
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "dev",
+            "target": "agent"
+          },
+          {
+            "id": "e2",
+            "source": "agent",
+            "target": "llm"
+          },
+          {
+            "id": "e3",
+            "source": "agent",
+            "target": "code"
+          },
+          {
+            "id": "e4",
+            "source": "agent",
+            "target": "fn"
+          },
+          {
+            "id": "e5",
+            "source": "agent",
+            "target": "human",
+            "label": "approve merge"
+          },
+          {
+            "id": "e6",
+            "source": "agent",
+            "target": "prompts"
+          },
+          {
+            "id": "e7",
+            "source": "agent",
+            "target": "span"
+          }
+        ]
+      },
+      "rationale": "Coder agent loops on sandboxed exec + git tools; human review gates merge; prompt registry + span evals track quality."
+    },
+    {
+      "id": "season-enterprise-agent-platform",
+      "title": "Enterprise Agent Platform",
+      "difficulty": "hard",
+      "track": "agentic",
+      "summary": "Multi-tenant agent platform with routing, guardrails, and observability.",
+      "description": "Platform teams host many internal agents: model routing, tool permissions, tenancy, traces, and eval gates before deploy.",
+      "requirements": [
+        "Model router / gateway",
+        "Per-tenant tool permissions",
+        "Guardrails + PII controls",
+        "Central traces",
+        "Deploy-gated e2e evals"
+      ],
+      "constraints": {
+        "regions": "Enterprise VPC",
+        "tokenBudget": "Per-tenant quotas",
+        "availability": "99.9% control plane"
+      },
+      "evaluationFocus": [
+        "router_gateway",
+        "tenancy",
+        "guardrails",
+        "evals before deploy"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "c",
+            "type": "web_client",
+            "position": {
+              "x": 0,
+              "y": 100
+            },
+            "data": {
+              "componentType": "web_client",
+              "label": "Web Client",
+              "category": "client",
+              "color": "#38bdf8",
+              "icon": "monitor",
+              "attributes": {
+                "device": "Both",
+                "rendering": "SSR"
+              }
+            }
+          },
+          {
+            "id": "router",
+            "type": "router_gateway",
+            "position": {
+              "x": 160,
+              "y": 100
+            },
+            "data": {
+              "componentType": "router_gateway",
+              "label": "Agent Router",
+              "category": "orchestration",
+              "color": "#f9a8d4",
+              "icon": "git-branch",
+              "attributes": {
+                "strategy": "Classifier LLM",
+                "fallbackModel": "Smaller/cheaper"
+              }
+            }
+          },
+          {
+            "id": "agent",
+            "type": "agent",
+            "position": {
+              "x": 320,
+              "y": 100
+            },
+            "data": {
+              "componentType": "agent",
+              "label": "Agent",
+              "category": "agent",
+              "color": "#c084fc",
+              "icon": "bot",
+              "attributes": {
+                "role": "General",
+                "maxSteps": 8,
+                "pattern": "ReAct",
+                "memoryEnabled": true,
+                "parallelToolCalls": false
+              }
+            }
+          },
+          {
+            "id": "llm",
+            "type": "llm_model",
+            "position": {
+              "x": 480,
+              "y": 40
+            },
+            "data": {
+              "componentType": "llm_model",
+              "label": "LLM / Model",
+              "category": "agent",
+              "color": "#c084fc",
+              "icon": "brain",
+              "attributes": {
+                "provider": "Router/multi",
+                "model": "grok-4.5",
+                "temperature": 0.2,
+                "maxTokens": 4096,
+                "contextWindow": "128k",
+                "structuredOutput": true
+              }
+            }
+          },
+          {
+            "id": "tools",
+            "type": "tool_function",
+            "position": {
+              "x": 480,
+              "y": 120
+            },
+            "data": {
+              "componentType": "tool_function",
+              "label": "Function / API Tool",
+              "category": "tools",
+              "color": "#22d3ee",
+              "icon": "wrench",
+              "attributes": {
+                "name": "api_tool",
+                "auth": "API key",
+                "idempotent": true,
+                "schemaValidated": true
+              }
+            }
+          },
+          {
+            "id": "guard",
+            "type": "guardrails",
+            "position": {
+              "x": 320,
+              "y": 200
+            },
+            "data": {
+              "componentType": "guardrails",
+              "label": "Guardrails",
+              "category": "orchestration",
+              "color": "#f9a8d4",
+              "icon": "shield-check",
+              "attributes": {
+                "inputFilter": true,
+                "outputFilter": true,
+                "toolAllowlist": true,
+                "piiRedaction": true
+              }
+            }
+          },
+          {
+            "id": "auth",
+            "type": "auth_service",
+            "position": {
+              "x": 160,
+              "y": 200
+            },
+            "data": {
+              "componentType": "auth_service",
+              "label": "Auth Service",
+              "category": "security",
+              "color": "#ef4444",
+              "icon": "key",
+              "attributes": {
+                "methods": "OAuth/OIDC",
+                "tokenTtlMin": 60,
+                "mfa": false
+              }
+            }
+          },
+          {
+            "id": "trace",
+            "type": "trace_collector",
+            "position": {
+              "x": 480,
+              "y": 200
+            },
+            "data": {
+              "componentType": "trace_collector",
+              "label": "Agent Trace Collector",
+              "category": "evals",
+              "color": "#facc15",
+              "icon": "waypoints",
+              "attributes": {
+                "backend": "OpenTelemetry",
+                "storePrompts": true,
+                "piiScrub": true
+              }
+            }
+          },
+          {
+            "id": "e2e",
+            "type": "e2e_eval",
+            "position": {
+              "x": 640,
+              "y": 100
+            },
+            "data": {
+              "componentType": "e2e_eval",
+              "label": "E2E Task Eval",
+              "category": "evals",
+              "color": "#facc15",
+              "icon": "clipboard-check",
+              "attributes": {
+                "dataset": "Golden set",
+                "metrics": "Task success rate",
+                "cadence": "Nightly",
+                "gateOnDeploy": true
+              }
+            }
+          },
+          {
+            "id": "prompts",
+            "type": "prompt_registry",
+            "position": {
+              "x": 640,
+              "y": 200
+            },
+            "data": {
+              "componentType": "prompt_registry",
+              "label": "Prompt Registry",
+              "category": "evals",
+              "color": "#facc15",
+              "icon": "notebook-pen",
+              "attributes": {
+                "versioning": true,
+                "abTesting": false
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "c",
+            "target": "router"
+          },
+          {
+            "id": "e2",
+            "source": "router",
+            "target": "agent"
+          },
+          {
+            "id": "e3",
+            "source": "agent",
+            "target": "llm"
+          },
+          {
+            "id": "e4",
+            "source": "agent",
+            "target": "tools"
+          },
+          {
+            "id": "e5",
+            "source": "agent",
+            "target": "guard"
+          },
+          {
+            "id": "e6",
+            "source": "router",
+            "target": "auth"
+          },
+          {
+            "id": "e7",
+            "source": "agent",
+            "target": "trace"
+          },
+          {
+            "id": "e8",
+            "source": "e2e",
+            "target": "prompts"
+          },
+          {
+            "id": "e9",
+            "source": "router",
+            "target": "e2e",
+            "label": "deploy gate"
+          }
+        ]
+      },
+      "rationale": "Router + auth tenancy, guardrails on agent I/O, traces, and e2e eval gates before prompt/model deploys."
+    },
+    {
+      "id": "season-eval-driven-agents",
+      "title": "Eval-Driven Agent Improvement",
+      "difficulty": "medium",
+      "track": "agentic",
+      "summary": "Close the loop: traces → span/e2e evals → prompt changes.",
+      "description": "Design how a team measures agent quality, finds regressions, and safely ships prompt/model updates.",
+      "requirements": [
+        "Collect traces/spans",
+        "Span-level evals",
+        "E2e golden set evals",
+        "Prompt registry with versions",
+        "Regression gate before release"
+      ],
+      "constraints": {
+        "other": [
+          "Must support classic + agentic products"
+        ],
+        "latencySla": "Eval suite overnight OK"
+      },
+      "evaluationFocus": [
+        "span_eval",
+        "e2e_eval",
+        "trace_collector",
+        "prompt_registry"
+      ],
+      "referenceDesign": {
+        "nodes": [
+          {
+            "id": "agent",
+            "type": "agent",
+            "position": {
+              "x": 0,
+              "y": 100
+            },
+            "data": {
+              "componentType": "agent",
+              "label": "Agent",
+              "category": "agent",
+              "color": "#c084fc",
+              "icon": "bot",
+              "attributes": {
+                "role": "General",
+                "maxSteps": 8,
+                "pattern": "ReAct",
+                "memoryEnabled": true,
+                "parallelToolCalls": false
+              }
+            }
+          },
+          {
+            "id": "trace",
+            "type": "trace_collector",
+            "position": {
+              "x": 180,
+              "y": 100
+            },
+            "data": {
+              "componentType": "trace_collector",
+              "label": "Agent Trace Collector",
+              "category": "evals",
+              "color": "#facc15",
+              "icon": "waypoints",
+              "attributes": {
+                "backend": "OpenTelemetry",
+                "storePrompts": true,
+                "piiScrub": true
+              }
+            }
+          },
+          {
+            "id": "span",
+            "type": "span_eval",
+            "position": {
+              "x": 360,
+              "y": 40
+            },
+            "data": {
+              "componentType": "span_eval",
+              "label": "Span / Step Eval",
+              "category": "evals",
+              "color": "#facc15",
+              "icon": "microscope",
+              "attributes": {
+                "metrics": "Mixed",
+                "judge": "LLM-as-judge",
+                "sampleRate": 10
+              }
+            }
+          },
+          {
+            "id": "e2e",
+            "type": "e2e_eval",
+            "position": {
+              "x": 360,
+              "y": 160
+            },
+            "data": {
+              "componentType": "e2e_eval",
+              "label": "E2E Task Eval",
+              "category": "evals",
+              "color": "#facc15",
+              "icon": "clipboard-check",
+              "attributes": {
+                "dataset": "Golden set",
+                "metrics": "Task success rate",
+                "cadence": "Nightly",
+                "gateOnDeploy": true
+              }
+            }
+          },
+          {
+            "id": "prompts",
+            "type": "prompt_registry",
+            "position": {
+              "x": 540,
+              "y": 100
+            },
+            "data": {
+              "componentType": "prompt_registry",
+              "label": "Prompt Registry",
+              "category": "evals",
+              "color": "#facc15",
+              "icon": "notebook-pen",
+              "attributes": {
+                "versioning": true,
+                "abTesting": false
+              }
+            }
+          },
+          {
+            "id": "orch",
+            "type": "workflow_orchestrator",
+            "position": {
+              "x": 720,
+              "y": 100
+            },
+            "data": {
+              "componentType": "workflow_orchestrator",
+              "label": "Workflow Orchestrator",
+              "category": "orchestration",
+              "color": "#f9a8d4",
+              "icon": "workflow",
+              "attributes": {
+                "style": "DAG graph",
+                "maxIterations": 10,
+                "checkpointing": true,
+                "humanInLoop": false
+              }
+            }
+          },
+          {
+            "id": "human",
+            "type": "human_review",
+            "position": {
+              "x": 540,
+              "y": 200
+            },
+            "data": {
+              "componentType": "human_review",
+              "label": "Human Review Gate",
+              "category": "orchestration",
+              "color": "#f9a8d4",
+              "icon": "user-check",
+              "attributes": {
+                "trigger": "High risk actions",
+                "slaMinutes": 30
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "e1",
+            "source": "agent",
+            "target": "trace"
+          },
+          {
+            "id": "e2",
+            "source": "trace",
+            "target": "span"
+          },
+          {
+            "id": "e3",
+            "source": "trace",
+            "target": "e2e"
+          },
+          {
+            "id": "e4",
+            "source": "span",
+            "target": "prompts",
+            "label": "regressions"
+          },
+          {
+            "id": "e5",
+            "source": "e2e",
+            "target": "prompts"
+          },
+          {
+            "id": "e6",
+            "source": "prompts",
+            "target": "orch",
+            "label": "canary deploy"
+          },
+          {
+            "id": "e7",
+            "source": "orch",
+            "target": "human",
+            "label": "approve"
+          }
+        ]
+      },
+      "rationale": "Traces feed span + e2e evals; results drive prompt registry versions with orchestrated human-gated rollout."
+    }
+  ]
+}
