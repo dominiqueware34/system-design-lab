@@ -1,43 +1,71 @@
-# Artifact 3 — Campaign prompt gen (#15)
+# Artifact 2 — Solo multi-problem levels (#11)
 
 ## PR
 
-https://github.com/dominiqueware34/system-design-lab/pull/20
+(filled after open)
 
-## Merge note
+## What shipped
 
-Rebased/merged `origin/main` (includes PR #19 nav shells). Only conflict was this handoff file (`SUMMARY.md` add/add). FEATURES.md auto-merged cleanly (nav rows + season prompt pack).
+Replace legacy 15×1 CampaignMap on `/solo` with **2 multi-problem levels**:
 
-## What shipped (this branch)
+| Level | Title | Content | Unlock |
+| --- | --- | --- | --- |
+| `solo-l1` | Foundations | 10 classic problems | Open |
+| `solo-l2` | Agentic Frontier | 6 agentic problems | All of L1 complete |
 
-Offline pipeline + committed fixture for competitive Campaign seasons:
+### Content (constants + APIs)
+- `src/lib/solo-levels.ts` — `SOLO_LEVELS` (data-driven)
+- `GET /api/solo/levels`
+- `GET /api/problems`, `GET /api/problems/[id]`
 
-- `exportCatalogSchema()` from `COMPONENT_CATALOG`
-- Zod schemas for season prompts (problem + referenceDesign + rationale + difficulty + track)
-- `validateDesignGraph` (unknown types / bad enums fail)
-- Script `scripts/generate-season-prompts.ts` → `fixtures/campaign/season-prompts-v1.json`
-- **20** catalog-valid prompts in fixture (programmatic source; XAI path when key present)
-- Operator docs: `docs/specs/campaign-prompt-generation.md`
+### Progress
+- localStorage `sdl-solo-progress-v1`
+- Supabase `solo_progress` (`supabase/migrations/20260809120000_solo_progress.sql`)
+  - Seeds from `campaign_progress` map completions when empty
+- `GET/PUT /api/progress/solo`
+- Merge-on-login includes solo (`POST /api/progress/merge`)
+- Per problem: `bestScore`, `stars`, `durationMs` (first qualifying finish)
+
+### Canvas
+- `/design/[problemId]?solo=solo-l1` (or `solo-l2`)
+- **No wrenches** — uses evaluate API
+- Pass when `score >= passScore` → writes progress + duration
+- Completing one problem ≠ completing level
+
+### UI
+- `SoloHub` on `/solo` — L1/L2 cards, lock state, per-problem stars/duration
+- FEATURES.md Solo Mode entry
 
 ## How to test
 
 ```bash
 npm install
 npm test
-npm run generate:season-prompts -- --offline   # rewrite fixture without API
-# with key:
-# export XAI_API_KEY=...
-# npm run generate:season-prompts              # fails without key unless --offline
+NODE_ENV=production npx next build
+
+# Apply migration in Supabase SQL editor (or CLI):
+# supabase/migrations/20260809120000_solo_progress.sql
+
+npm run dev
 ```
+
+Manual:
+1. Open `/solo` — L1 unlocked, L2 locked.
+2. Open a L1 problem → canvas shows “Solo · no wrenches”.
+3. Submit design with score ≥ passScore (or mock) → problem marked complete; duration stored.
+4. Confirm one problem complete does **not** unlock L2.
+5. Guest: check `localStorage['sdl-solo-progress-v1']`.
+6. Sign in: merge should hydrate; `GET /api/progress/solo` when authed.
+7. `curl localhost:3000/api/solo/levels` and `/api/problems`.
 
 ## Out of scope (intentional)
 
-- Season UI / nav / DesignWorkspace (nav is on main via #19)
-- DB insert / migrations
+- Campaign seasons tables / submit API / leaderboard
 - Plan B constraint engine
-- Live mid-request generation
+- Removing legacy `campaign.ts` / wrench path entirely (`?campaign=w*` still works)
 
 ## Risks
 
-- Committed fixture is `source: programmatic` (not live XAI). Regenerate with `XAI_API_KEY` when desired; re-validate with `npm test` + script.
-- AI batches may occasionally emit invalid catalog enums; script validates and exits non-zero — re-run or fall back to `--offline`.
+- Supabase migration must be applied or signed-in solo sync/merge will error on missing `solo_progress`.
+- Legacy map progress seeds problems but `durationMs: 0` (unknown).
+- L1 includes `multi-tenant-saas-db` which was not on the old map — full L1 still requires that problem for unlock.

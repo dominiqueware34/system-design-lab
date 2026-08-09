@@ -1,4 +1,4 @@
-import type { CampaignProgress } from "@/lib/types";
+import type { CampaignProgress, SoloProgress } from "@/lib/types";
 import type { TrainingProgress } from "@/lib/training-lessons";
 import {
   defaultProgress,
@@ -10,12 +10,18 @@ import {
   loadTrainingProgress,
   saveTrainingProgress,
 } from "@/lib/training-lessons";
+import {
+  defaultSoloProgress,
+  loadSoloProgress,
+  saveSoloProgress,
+} from "@/lib/solo-levels";
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 
 export type MergeResult = {
   campaign: CampaignProgress;
   training: TrainingProgress;
+  solo: SoloProgress;
   mergedFromLocal: boolean;
 };
 
@@ -33,7 +39,7 @@ export async function isSignedIn(): Promise<boolean> {
 }
 
 /**
- * On login: POST local campaign + training to /api/progress/merge,
+ * On login: POST local campaign + training + solo to /api/progress/merge,
  * hydrate localStorage from the server response.
  */
 export async function mergeLocalWithServer(): Promise<MergeResult | null> {
@@ -45,11 +51,12 @@ export async function mergeLocalWithServer(): Promise<MergeResult | null> {
     try {
       const campaign = loadProgress();
       const training = loadTrainingProgress();
+      const solo = loadSoloProgress();
 
       const res = await fetch("/api/progress/merge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ campaign, training }),
+        body: JSON.stringify({ campaign, training, solo }),
       });
 
       if (res.status === 401) return null;
@@ -61,6 +68,7 @@ export async function mergeLocalWithServer(): Promise<MergeResult | null> {
       const data = (await res.json()) as MergeResult;
       saveProgress(data.campaign ?? defaultProgress());
       saveTrainingProgress(data.training ?? defaultTrainingProgress());
+      saveSoloProgress(data.solo ?? defaultSoloProgress());
       window.dispatchEvent(new CustomEvent("sdl:progress-synced", { detail: data }));
       return data;
     } catch (err) {
@@ -112,6 +120,27 @@ export function pushTrainingProgress(progress: TrainingProgress): void {
       }
     } catch (err) {
       console.error("[progress-sync] training PUT error", err);
+    }
+  })();
+}
+
+/** Fire-and-forget PUT Solo Mode progress when signed in. */
+export function pushSoloProgress(progress: SoloProgress): void {
+  if (typeof window === "undefined" || !hasSupabaseEnv()) return;
+  void (async () => {
+    try {
+      const signedIn = await isSignedIn();
+      if (!signedIn) return;
+      const res = await fetch("/api/progress/solo", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(progress),
+      });
+      if (!res.ok && res.status !== 401) {
+        console.error("[progress-sync] solo PUT failed", await res.text());
+      }
+    } catch (err) {
+      console.error("[progress-sync] solo PUT error", err);
     }
   })();
 }

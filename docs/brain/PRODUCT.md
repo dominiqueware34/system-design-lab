@@ -40,7 +40,7 @@ Primary vocabulary. **Do not** call the personal progression path “Campaign”
 | --- | --- | --- | --- |
 | **Training** | `/training`, `/training/[lessonId]`, guided under `/training/guided/…` | **Learn** — building blocks and step-by-step architectures | **Yes** |
 | **Practice** | Hub `/` → design; target picker **`/practice`** | **Practice** — full problems, AI score, no Solo unlocks / no season rules | **Yes** (picker still on `/`; `/practice` is Artifact 1) |
-| **Solo Mode** | **`/solo`** | **Play** — personal multi-problem levels, duration/progress, stars | **No** (roadmap Artifacts 1–2; #16, #11) |
+| **Solo Mode** | **`/solo`** | **Play** — personal multi-problem levels, duration/progress, stars | **Yes** (Artifact 2 / #11 — multi-problem levels) |
 | **Campaign** | **`/campaign`** | **Compete** — 3-day seasons, attempts limits, private timer, public leaderboard | **Partial rename collision** — shipped surface is a **solo progress map + wrenches** (pre mode-split). Competitive seasons **not** shipped |
 
 ### Solo Mode vs Campaign (agents must not confuse these)
@@ -88,7 +88,7 @@ Hub remains `/`. Practice picker migrates to `/practice` when Artifact 1 lands.
 
 | Idea | Intent | Status |
 | --- | --- | --- |
-| **Solo Mode** (`/solo`) | Personal multi-problem levels (v1: 2 levels) | Planned — Artifacts 1–2 (#16, #11) |
+| **Solo Mode** (`/solo`) | Personal multi-problem levels (v1: 2 levels) | **Shipped** — Artifact 2 / #11 |
 | **Campaign seasons** (3-day) | Shared 20-prompt set; leaderboard; scoring `v1_correct_diff_cover` | Planned — Artifacts 3–7 (#15, #14, #17, #12, #10) |
 | Practice at `/practice` | Dedicated practice route; hub stays `/` | Planned — Artifact 1 (#16) |
 | Content APIs over constants | Serve Solo/Campaign content from APIs, not only TS constants | Planned with content artifacts |

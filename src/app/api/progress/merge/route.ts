@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient, getOptionalUser } from "@/lib/supabase/server";
 import { mergeAndPersist } from "@/lib/progress-db";
-import type { CampaignProgress } from "@/lib/types";
+import type { CampaignProgress, SoloProgress } from "@/lib/types";
 import type { TrainingProgress } from "@/lib/training-lessons";
 
 export const runtime = "nodejs";
@@ -13,6 +13,7 @@ function unauthorized() {
 interface MergeBody {
   campaign?: CampaignProgress | null;
   training?: TrainingProgress | null;
+  solo?: SoloProgress | null;
 }
 
 export async function POST(req: Request) {
@@ -34,7 +35,8 @@ export async function POST(req: Request) {
       supabase,
       user,
       body.campaign ?? null,
-      body.training ?? null
+      body.training ?? null,
+      body.solo ?? null
     );
     return NextResponse.json(result);
   } catch (err) {
