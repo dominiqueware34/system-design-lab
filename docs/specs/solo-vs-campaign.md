@@ -204,7 +204,7 @@ Suggested parallelization after Artifact 0: **#16** (nav) and **#15** (prompt ge
 - [x] `PRODUCT.md` has Solo vs Campaign modes table
 - [x] This file documents `v1_correct_diff_cover`
 - [x] `BOARD.md` lists artifacts 0–7
-- [ ] Docs PR opened (checklist completes when PR exists)
+- [x] Docs PR opened — https://github.com/dominiqueware34/system-design-lab/pull/18
 
 ## Related files
 

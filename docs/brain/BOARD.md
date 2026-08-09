@@ -28,8 +28,9 @@ IN FLIGHT
       branch:   docs/solo-campaign-modes
       worktree: (implementer worktree / subagent)
       issue:    #13
-      next:     docs PR open → merge; then agents may start #16 / #15
+      next:     merge PR #18; then agents may start #16 / #15
       note:     keep [~] until PR merges; SSOT docs/specs/solo-vs-campaign.md
+      pr:       https://github.com/dominiqueware34/system-design-lab/pull/18
 
 PLANNED (not started — pick one, open a feature branch)
   [ ] Artifact 1: App nav + route shells (/solo, /campaign, /practice)  #16  depends: #13
@@ -61,7 +62,7 @@ feat/auth-supabase-p0            system-design-lab-auth-p0 d611fa9  STALE     pr
 feat/map-flavor-p0               system-design-lab-map-p0  b18513b  STALE     prune
 docs/marketing-campaign          system-design-lab-marketing 5bcb8d0 STALE    prune
 
-Open PRs: (refresh with gh pr list — Artifact 0 docs PR when opened)
+Open PRs: #18 docs/solo-campaign-modes → main (Artifact 0 / #13)
 ```
 
 ## How to add a feature to this board

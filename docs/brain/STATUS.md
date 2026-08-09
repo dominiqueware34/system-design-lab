@@ -51,7 +51,7 @@ Optional: `git push origin --delete <branch>` when cleaning up.
 
 ## Next actions (ordered, ≤10)
 
-1. Merge Artifact 0 docs PR (#13) → on main: clear Active / move BOARD row for #13 to done (docs); keep Artifacts 1–7 planned.
+1. Merge Artifact 0 docs PR **#18** (issue #13) → on main: clear Active / move BOARD row for #13 to done (docs); keep Artifacts 1–7 planned.
 2. Start **#16** nav shells and/or **#15** prompt gen (parallel after #13).
 3. Then Solo **#11**; Campaign chain **#14 → #17 → #12 → #10** (seed after #15).
 4. Prune three STALE local worktrees (operator).
