@@ -22,30 +22,30 @@ SHIPPED (summary — full detail in FEATURES.md)
   [x] Supabase Google auth + progress sync
   [x] Marketing docs (IG/X + video brief)
   [x] Application brain + multi-agent board protocol (PR #8/#9)
-  [x] Artifact 0: Solo vs Campaign product vocabulary (docs PR #18 / #13)
+  [x] Artifact 0: Solo vs Campaign vocabulary (PR #18 / #13)
+  [x] Artifact 1: App nav + route shells (PR #19 / #16)
+  [x] Artifact 3: Catalog schema + 20 season prompts fixture (PR #20 / #15)
 
 IN FLIGHT
-  [~] Artifact 1: App nav + route shells (/solo, /campaign, /practice)
-      branch:   feat/app-nav-mode-shells
-      worktree: system-design-lab-nav-shell
-      issue:    #16
-      next:     AppNav + /solo map + /practice picker + /campaign CTA + hub
+  [~] Artifact 2: Solo multi-problem levels + progress + duration
+      branch:   feat/solo-multi-problem
+      worktree: system-design-lab-solo
+      issue:    #11
+      next:     SOLO_LEVELS + progress APIs + hub UI + canvas complete; no wrenches
 
-  [~] Artifact 3: Catalog schema + AI generate 20 campaign prompts
-      branch:   feat/campaign-prompt-gen
-      worktree: system-design-lab-prompt-gen
-      issue:    #15
-      next:     exportCatalogSchema + validator + gen script + 20 fixture
-      note:     parallel-safe with #16 (and later #11); Plan B parked
+  [~] Artifact 4: Campaign seasons DB schema + RLS
+      branch:   feat/campaign-seasons-db
+      worktree: system-design-lab-seasons-db
+      issue:    #14
+      next:     migrations profiles/seasons/prompts/sessions/attempts/scores + seed from fixture
+      note:     parallel-safe with #11; no solo tables
 
-PLANNED (not started — pick one, open a feature branch)
-  [ ] Artifact 2: Solo multi-problem levels + progress + duration       #11  depends: #16
-  [ ] Artifact 4: Campaign seasons DB schema + RLS                      #14  depends: #13 (seed after #15)
+PLANNED
   [ ] Artifact 5: Campaign submit API + scoring                         #17  depends: #15 #14
   [ ] Artifact 6: Campaign season UI + leaderboard                      #12  depends: #17
-  [ ] Artifact 7: Campaign hardening (limits, end, reveal)              #10  depends: #12
-  note: Plan B (constraint engine) PARKED — do not start
-  note: scoring formula id v1_correct_diff_cover (see solo-vs-campaign.md)
+  [ ] Artifact 7: Campaign hardening                                    #10  depends: #12
+  note: Plan B PARKED
+  note: scoring v1_correct_diff_cover (solo-vs-campaign.md)
 
 BLOCKED
   (none)
@@ -56,18 +56,11 @@ BLOCKED
 ```
 PARALLEL STATUS
 ===============
-Run also: git worktree list && gh pr list --state open
-
-BRANCH / WORKSTREAM              WORKTREE                 TIP      vs MAIN   STATE
--------------------------------  -----------------------  -------  --------  -----------
-main                             system-design-lab        fb5f074  CURRENT   claims
-feat/app-nav-mode-shells         (implementer worktree)   —        missing   #16 IN FLIGHT
-feat/campaign-prompt-gen         (implementer worktree)   —        missing   #15 IN FLIGHT
-feat/auth-supabase-p0            system-design-lab-auth-p0 d611fa9  STALE     prune
-feat/map-flavor-p0               system-design-lab-map-p0  b18513b  STALE     prune
-docs/marketing-campaign          system-design-lab-marketing 5bcb8d0 STALE    prune
-
-Open PRs: (none at claim time)
+main                             system-design-lab        c941853  CURRENT   claims
+feat/solo-multi-problem          (implementer)            —        missing   #11
+feat/campaign-seasons-db         (implementer)            —        missing   #14
+STALE worktrees: auth-p0, map-p0, marketing — prune
+Open PRs: (none at claim)
 ```
 
 ## How to add a feature to this board
@@ -84,13 +77,3 @@ When you **finish**:
 1. Move to SHIPPED as `[x]` (or delete from IN FLIGHT if folded into FEATURES only).
 2. Update `FEATURES.md` in the same PR.
 3. Clear Active row in `STATUS.md` after merge.
-
-## Template (copy for new rows)
-
-```
-  [~] <Feature title>
-      branch:   feat/<name>
-      worktree: system-design-lab-<name>
-      agent:    <tool or session id if known>
-      next:     <one concrete step>
-```
