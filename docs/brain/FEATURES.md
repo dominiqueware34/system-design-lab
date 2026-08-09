@@ -23,6 +23,7 @@
 | Progress dual model | `/api/progress/campaign`, `/api/progress/training`, `/api/progress/merge` | `src/lib/progress-sync.ts`, `src/lib/progress-merge.ts`, `src/lib/progress-db.ts`, migration SQL | localStorage **always** + Supabase when signed in (storage key still `sdl-campaign-progress-v1` for Solo map) |
 | Marketing / research | docs only | `docs/marketing/*`, `docs/market-research-viability.md` | Not runtime |
 | Campaign season prompt pack (offline) | fixture only (no UI) | `fixtures/campaign/season-prompts-v1.json`, `src/lib/catalog-schema.ts`, `src/lib/design-graph-validate.ts`, `src/lib/campaign-prompt-schema.ts`, `scripts/generate-season-prompts.ts` | Artifact 3: **20** pre-gen prompts + reference designs; operator docs `docs/specs/campaign-prompt-generation.md`. Not competitive season UI. |
+| Campaign seasons DB (schema) | migrations + seed only (no UI) | `supabase/migrations/20260809120000_profiles.sql`, `…20100_campaign_seasons_and_prompts.sql`, `…20200_campaign_play_tables.sql`, `scripts/seed-season.ts` | Artifact 4 (#14): `profiles`, `campaign_seasons`, `campaign_prompts` (+ public view), `campaign_prompt_sessions`, `campaign_attempts`, `campaign_season_scores`, `campaign_leaderboard`. RLS: no client writes to scores/attempts; `reference_design` column-revoked for JWT. Seed: `npm run seed:season`. **Not** live season play UI (Artifact 6) or submit API (Artifact 5). |
 
 ### Deep links (design canvas)
 
@@ -40,6 +41,7 @@ Solo map back links / post-clear → `/solo`.
 | --- | --- | --- |
 | localStorage | `sdl-campaign-progress-v1`, `sdl-training-progress-v1` | Always written (`src/lib/campaign.ts`, `src/lib/training-lessons.ts`) |
 | Supabase | `campaign_progress`, `training_progress` | RLS own-row; `supabase/migrations/20260327120000_progress_tables.sql` |
+| Supabase (Campaign seasons) | `profiles`, `campaign_seasons`, `campaign_prompts`, `campaign_prompt_sessions`, `campaign_attempts`, `campaign_season_scores` | Schema/RLS Artifact 4; service-role writes for attempts/scores (API later). Seed from fixture via `scripts/seed-season.ts`. |
 | Merge | `POST /api/progress/merge` | On login: union local+remote; hydrate localStorage |
 
 ## Stack (shipped)
