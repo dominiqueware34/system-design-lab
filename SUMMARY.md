@@ -2,7 +2,7 @@
 
 ## PR
 
-(see below after open)
+https://github.com/dominiqueware34/system-design-lab/pull/20
 
 ## What shipped
 
