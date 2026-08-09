@@ -14,7 +14,6 @@ import {
 import { GUIDED_BUILDS } from "@/lib/guided-builds";
 import { DIAGRAM_MAP } from "@/components/diagrams/ConceptDiagrams";
 import {
-  ArrowLeft,
   ArrowRight,
   BookOpen,
   CheckCircle2,
@@ -54,16 +53,6 @@ export default function TrainingIndexPage() {
 
   return (
     <div className="min-h-dvh bg-zinc-950 text-zinc-100">
-      <div className="border-b border-white/10 px-4 py-3">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-100"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Home
-        </Link>
-      </div>
-
       <div className="mx-auto max-w-4xl px-6 py-12">
         <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-sky-500/25 bg-sky-500/10 px-3 py-1 text-xs font-medium text-sky-300">
           <GraduationCap className="h-3.5 w-3.5" />
@@ -277,10 +266,16 @@ export default function TrainingIndexPage() {
 
         <div className="mt-12 flex flex-wrap gap-3 border-t border-white/10 pt-6">
           <Link
-            href="/campaign"
+            href="/solo"
             className="text-sm text-zinc-500 hover:text-zinc-300"
           >
-            Campaign map →
+            Solo Mode map →
+          </Link>
+          <Link
+            href="/practice"
+            className="text-sm text-zinc-500 hover:text-zinc-300"
+          >
+            Free practice →
           </Link>
           <button
             type="button"

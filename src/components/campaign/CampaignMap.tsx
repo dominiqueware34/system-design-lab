@@ -73,15 +73,17 @@ export function CampaignMap() {
         <div>
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-300">
             <MapIcon className="h-3.5 w-3.5" />
-            Campaign mode
+            Solo Mode
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
             The Architecture Trail
           </h1>
           <p className="mt-2 max-w-xl text-sm text-zinc-400">
-            Clear levels along the path. Each stage, the AI inspects your design and throws a{" "}
+            Personal progression — no public ranking. Clear levels along the path. Each
+            stage, the AI inspects your design and throws a{" "}
             <span className="text-zinc-200">wrench</span> — latency spikes, security holes,
-            DB overflows, agent failures — you must fix it to unlock the next node.
+            DB overflows, agent failures — fix it to unlock the next node. (Temporary 15×1
+            map until multi-problem Solo levels ship.)
           </p>
           <SoftSignInHint className="mt-3 max-w-xl" />
         </div>

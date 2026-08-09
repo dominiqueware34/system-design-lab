@@ -8,20 +8,22 @@ export default async function DesignPage({
   searchParams,
 }: {
   params: Promise<{ problemId: string }>;
-  searchParams: Promise<{ campaign?: string }>;
+  searchParams: Promise<{ solo?: string; campaign?: string }>;
 }) {
   const { problemId } = await params;
-  const { campaign } = await searchParams;
+  const sp = await searchParams;
+  // Prefer ?solo=; accept legacy ?campaign= as Solo map alias
+  const levelParam = sp.solo || sp.campaign;
   const problem = getProblemById(problemId);
 
   if (!problem) {
     notFound();
   }
 
-  // Validate campaign level points at this problem
+  // Validate Solo map level points at this problem
   let campaignLevelId: string | undefined;
-  if (campaign) {
-    const level = getCampaignLevel(campaign);
+  if (levelParam) {
+    const level = getCampaignLevel(levelParam);
     if (level && level.problemId === problemId) {
       campaignLevelId = level.id;
     }

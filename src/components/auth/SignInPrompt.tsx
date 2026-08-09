@@ -73,7 +73,7 @@ export function SoftSignInHint({ className = "" }: { className?: string }) {
         onClick={() => {
           setBusy(true);
           void signInWithGoogle({
-            next: pathname && pathname !== "/" ? pathname : "/campaign",
+            next: pathname && pathname !== "/" ? pathname : "/solo",
           }).finally(() => setBusy(false));
         }}
         className="rounded-lg bg-white px-2.5 py-1 text-xs font-semibold text-zinc-900 hover:bg-zinc-100 disabled:opacity-60"
@@ -176,7 +176,7 @@ export function AfterCompleteSignInBanner() {
           onClick={() => {
             setBusy(true);
             void signInWithGoogle({
-              next: pathname && pathname !== "/" ? pathname : "/campaign",
+              next: pathname && pathname !== "/" ? pathname : "/solo",
             }).finally(() => setBusy(false));
           }}
           className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-zinc-900 hover:bg-zinc-100 disabled:opacity-60"

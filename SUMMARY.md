@@ -4,7 +4,11 @@
 
 https://github.com/dominiqueware34/system-design-lab/pull/20
 
-## What shipped
+## Merge note
+
+Rebased/merged `origin/main` (includes PR #19 nav shells). Only conflict was this handoff file (`SUMMARY.md` add/add). FEATURES.md auto-merged cleanly (nav rows + season prompt pack).
+
+## What shipped (this branch)
 
 Offline pipeline + committed fixture for competitive Campaign seasons:
 
@@ -28,7 +32,7 @@ npm run generate:season-prompts -- --offline   # rewrite fixture without API
 
 ## Out of scope (intentional)
 
-- Season UI / nav / DesignWorkspace
+- Season UI / nav / DesignWorkspace (nav is on main via #19)
 - DB insert / migrations
 - Plan B constraint engine
 - Live mid-request generation

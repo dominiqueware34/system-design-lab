@@ -50,7 +50,7 @@ const nodeTypes = { design: DesignNode };
 
 interface DesignWorkspaceProps {
   problem: DesignProblem;
-  /** When set, run campaign flow with AI wrenches */
+  /** When set, run Solo map flow with AI wrenches (legacy progression) */
   campaignLevelId?: string;
 }
 
@@ -426,7 +426,7 @@ function DesignWorkspaceInner({ problem, campaignLevelId }: DesignWorkspaceProps
       return;
     }
     if (levelPassed) {
-      router.push("/campaign");
+      router.push("/solo");
       return;
     }
     if (activeWrench && phase === "wrench") {
@@ -488,7 +488,7 @@ if (flowOpen) {
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 px-4">
         <div className="flex items-center gap-3">
           <Link
-            href={isCampaign ? "/campaign" : "/"}
+            href={isCampaign ? "/solo" : "/practice"}
             className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-zinc-100"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -503,7 +503,7 @@ if (flowOpen) {
             </p>
             <p className="text-[11px] capitalize text-zinc-500">
               {isCampaign
-                ? `Campaign · W${campaignLevel?.world} · ${phase}${
+                ? `Solo · W${campaignLevel?.world} · ${phase}${
                     levelPassed ? " · cleared" : ""
                   }`
                 : problem.difficulty}
@@ -625,7 +625,7 @@ if (flowOpen) {
               passed={levelPassed}
               onClose={() => setWrenchOpen(false)}
               onSubmitFix={() => void submitWrenchFix()}
-              onContinueToMap={() => router.push("/campaign")}
+              onContinueToMap={() => router.push("/solo")}
               onWatchFlow={
                 canPlayFlow
                   ? () => {

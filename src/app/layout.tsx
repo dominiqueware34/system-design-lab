@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthHeader } from "@/components/auth/AuthHeader";
 import { AfterCompleteSignInBanner } from "@/components/auth/SignInPrompt";
+import { AppNav } from "@/components/nav/AppNav";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -17,7 +18,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "System Design Lab",
   description:
-    "System design teaching game: learn on a canvas, then compete in the campaign. SpaceXAI scores architectures and throws production wrenches. Training included.",
+    "System design teaching game: Training, Practice, Solo Mode, and Campaign seasons. SpaceXAI scores architectures.",
 };
 
 export default function RootLayout({
@@ -30,6 +31,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-dvh bg-zinc-950 font-sans antialiased`}
       >
+        <AppNav />
         <AuthHeader />
         <AfterCompleteSignInBanner />
         {children}
