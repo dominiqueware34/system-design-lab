@@ -22,20 +22,24 @@ SHIPPED (summary — full detail in FEATURES.md)
   [x] Supabase Google auth + progress sync
   [x] Marketing docs (IG/X + video brief)
   [x] Application brain + multi-agent board protocol (PR #8/#9)
+  [x] Artifact 0: Solo vs Campaign product vocabulary (docs PR #18 / #13)
 
 IN FLIGHT
-  [~] Artifact 0: Solo vs Campaign product vocabulary (docs)
-      branch:   docs/solo-campaign-modes
-      worktree: (implementer worktree / subagent)
-      issue:    #13
-      next:     merge PR #18; then agents may start #16 / #15
-      note:     keep [~] until PR merges; SSOT docs/specs/solo-vs-campaign.md
-      pr:       https://github.com/dominiqueware34/system-design-lab/pull/18
+  [~] Artifact 1: App nav + route shells (/solo, /campaign, /practice)
+      branch:   feat/app-nav-mode-shells
+      worktree: system-design-lab-nav-shell
+      issue:    #16
+      next:     AppNav + /solo map + /practice picker + /campaign CTA + hub
+
+  [~] Artifact 3: Catalog schema + AI generate 20 campaign prompts
+      branch:   feat/campaign-prompt-gen
+      worktree: system-design-lab-prompt-gen
+      issue:    #15
+      next:     exportCatalogSchema + validator + gen script + 20 fixture
+      note:     parallel-safe with #16 (and later #11); Plan B parked
 
 PLANNED (not started — pick one, open a feature branch)
-  [ ] Artifact 1: App nav + route shells (/solo, /campaign, /practice)  #16  depends: #13
   [ ] Artifact 2: Solo multi-problem levels + progress + duration       #11  depends: #16
-  [ ] Artifact 3: Catalog schema + AI generate 20 campaign prompts      #15  depends: #13  ∥ #11
   [ ] Artifact 4: Campaign seasons DB schema + RLS                      #14  depends: #13 (seed after #15)
   [ ] Artifact 5: Campaign submit API + scoring                         #17  depends: #15 #14
   [ ] Artifact 6: Campaign season UI + leaderboard                      #12  depends: #17
@@ -56,13 +60,14 @@ Run also: git worktree list && gh pr list --state open
 
 BRANCH / WORKSTREAM              WORKTREE                 TIP      vs MAIN   STATE
 -------------------------------  -----------------------  -------  --------  -----------
-main                             (primary)                2d34cdb  CURRENT   claims only
-docs/solo-campaign-modes         (this PR worktree)       AHEAD    #13 docs  IN FLIGHT
+main                             system-design-lab        fb5f074  CURRENT   claims
+feat/app-nav-mode-shells         (implementer worktree)   —        missing   #16 IN FLIGHT
+feat/campaign-prompt-gen         (implementer worktree)   —        missing   #15 IN FLIGHT
 feat/auth-supabase-p0            system-design-lab-auth-p0 d611fa9  STALE     prune
 feat/map-flavor-p0               system-design-lab-map-p0  b18513b  STALE     prune
 docs/marketing-campaign          system-design-lab-marketing 5bcb8d0 STALE    prune
 
-Open PRs: #18 docs/solo-campaign-modes → main (Artifact 0 / #13)
+Open PRs: (none at claim time)
 ```
 
 ## How to add a feature to this board
