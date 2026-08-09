@@ -1,50 +1,78 @@
-"use client";
-
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { DIFFICULTY_META, PROBLEMS, TRACK_META } from "@/lib/problems";
-import type { Difficulty, ProblemTrack } from "@/lib/types";
 import {
   ArrowRight,
   Bot,
-  Layers,
+  GraduationCap,
+  Map as MapIcon,
   Sparkles,
   Target,
-  Workflow,
+  Trophy,
 } from "lucide-react";
 
-const ORDER: Difficulty[] = ["easy", "medium", "hard"];
-type TrackFilter = "all" | ProblemTrack;
+const MODES = [
+  {
+    href: "/training",
+    title: "Training",
+    tagline: "Learn",
+    body: "Building blocks and guided builds — caches, queues, LBs, agent patterns.",
+    icon: GraduationCap,
+    accent: "border-sky-500/30 hover:border-sky-400/50",
+    iconClass: "text-sky-400",
+    cta: "Start learning",
+  },
+  {
+    href: "/solo",
+    title: "Solo Mode",
+    tagline: "Play",
+    body: "Personal progression map. Clear levels, survive wrenches, earn stars — no public ranking.",
+    icon: MapIcon,
+    accent: "border-amber-500/30 hover:border-amber-400/50",
+    iconClass: "text-amber-400",
+    cta: "Open Solo map",
+  },
+  {
+    href: "/campaign",
+    title: "Campaign",
+    tagline: "Compete",
+    body: "3-day seasons, shared prompts, leaderboard. Google sign-in required when seasons ship.",
+    icon: Trophy,
+    accent: "border-rose-500/30 hover:border-rose-400/50",
+    iconClass: "text-rose-400",
+    cta: "View Campaign",
+  },
+  {
+    href: "/practice",
+    title: "Practice",
+    tagline: "Rehearse",
+    body: "Full canvas problems with SpaceXAI scoring. No unlocks, no season pressure.",
+    icon: Target,
+    accent: "border-violet-500/30 hover:border-violet-400/50",
+    iconClass: "text-violet-400",
+    cta: "Browse problems",
+  },
+] as const;
 
 export default function HomePage() {
-  const [track, setTrack] = useState<TrackFilter>("all");
-
-  const filtered = useMemo(() => {
-    if (track === "all") return PROBLEMS;
-    return PROBLEMS.filter((p) => p.track === track);
-  }, [track]);
-
   return (
     <div className="min-h-dvh bg-zinc-950 text-zinc-100">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(124,58,237,0.15),_transparent_50%),radial-gradient(ellipse_at_bottom_right,_rgba(14,165,233,0.08),_transparent_40%)]" />
 
-      <div className="relative mx-auto max-w-5xl px-6 pb-20 pt-16">
-        <header className="mb-10">
+      <div className="relative mx-auto max-w-5xl px-6 pb-20 pt-14">
+        <header className="mb-12">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/10 px-3 py-1 text-xs font-medium text-violet-300">
             <Sparkles className="h-3.5 w-3.5" />
             System design teaching game · SpaceXAI
           </div>
           <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
             Learn system design.
-            <span className="block text-zinc-400">Then compete in the campaign.</span>
+            <span className="block text-zinc-400">Practice. Play Solo. Compete in Campaign.</span>
           </h1>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-zinc-400">
-            Train on a real architecture canvas—load balancers, caches, queues, databases.
-            When you&apos;re ready, enter the{" "}
-            <span className="text-zinc-200">campaign</span>: clear levels, survive AI{" "}
-            <span className="text-zinc-200">wrenches</span>, and chase high scores.{" "}
-            <span className="text-zinc-200">SpaceXAI</span> is both interviewer and chaos
-            engine.
+            Train on a real architecture canvas — load balancers, caches, queues, databases.
+            Then free practice, personal{" "}
+            <span className="text-zinc-200">Solo Mode</span> levels, or competitive{" "}
+            <span className="text-zinc-200">Campaign</span> seasons.{" "}
+            <span className="text-zinc-200">SpaceXAI</span> is interviewer and scorer.
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -56,17 +84,17 @@ export default function HomePage() {
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="/campaign"
-              className="inline-flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-rose-900/30 hover:bg-rose-500"
+              href="/solo"
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-900/30 hover:bg-amber-500"
             >
-              Play campaign
+              Play Solo Mode
             </Link>
-            <a
-              href="#practice"
+            <Link
+              href="/practice"
               className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-5 py-3 text-sm font-medium text-zinc-300 hover:bg-white/5"
             >
               Free practice
-            </a>
+            </Link>
           </div>
 
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
@@ -77,14 +105,14 @@ export default function HomePage() {
                 body: "Training + guided builds for the building blocks of real system design.",
               },
               {
-                icon: Layers,
+                icon: Target,
                 title: "Practice",
                 body: "Full canvas problems. SpaceXAI scores scale, bottlenecks, and failure modes.",
               },
               {
-                icon: Target,
-                title: "Compete",
-                body: "Campaign levels, wrenches, stars. Future: 3-day seasons for highest scores.",
+                icon: Trophy,
+                title: "Play & compete",
+                body: "Solo Mode for personal levels. Campaign for 3-day seasons and leaderboards.",
               },
             ].map(({ icon: Icon, title, body }) => (
               <div
@@ -99,94 +127,38 @@ export default function HomePage() {
           </div>
         </header>
 
-        <div id="practice" className="mb-8 flex flex-wrap gap-2 scroll-mt-8">
-          {(
-            [
-              { id: "all" as const, label: "All problems" },
-              { id: "agentic" as const, label: TRACK_META.agentic.label },
-              { id: "classic" as const, label: TRACK_META.classic.label },
-            ] as const
-          ).map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => setTrack(opt.id)}
-              className={`rounded-full border px-3 py-1.5 text-sm transition ${
-                track === opt.id
-                  ? "border-violet-500/50 bg-violet-500/20 text-violet-200"
-                  : "border-white/10 bg-zinc-900/40 text-zinc-400 hover:border-white/20 hover:text-zinc-200"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        {(track === "all" || track === "agentic") && (
-          <p className="mb-6 flex items-start gap-2 rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-2 text-xs text-zinc-400">
-            <Workflow className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-400" />
-            Agentic tips: wire <strong className="font-medium text-zinc-300">Agent → Tool → Agent</strong>{" "}
-            for multi-step feedback, pick an <strong className="font-medium text-zinc-300">LLM model</strong>,
-            parallelize with multi-agent / fan-out, and add{" "}
-            <strong className="font-medium text-zinc-300">span or e2e evals</strong> — the interviewer will ask.
-          </p>
-        )}
-
-        <div className="space-y-10">
-          {ORDER.map((difficulty) => {
-            const meta = DIFFICULTY_META[difficulty];
-            const problems = filtered.filter((p) => p.difficulty === difficulty);
-            if (problems.length === 0) return null;
-            return (
-              <section key={difficulty}>
-                <div className="mb-3 flex items-baseline gap-3">
-                  <h2 className={`text-lg font-semibold ${meta.color}`}>{meta.label}</h2>
-                  <p className="text-sm text-zinc-600">{meta.description}</p>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {problems.map((problem) => {
-                    const t = TRACK_META[problem.track];
-                    return (
-                      <Link
-                        key={problem.id}
-                        href={`/design/${problem.id}`}
-                        className="group flex flex-col rounded-xl border border-white/10 bg-zinc-900/40 p-4 transition hover:border-violet-500/40 hover:bg-zinc-900/80"
-                      >
-                        <div className="mb-2 flex items-center gap-2">
-                          <span
-                            className={`rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${t.badge}`}
-                          >
-                            {t.label}
-                          </span>
-                        </div>
-                        <h3 className="font-medium text-zinc-50 group-hover:text-white">
-                          {problem.title}
-                        </h3>
-                        <p className="mt-1.5 flex-1 text-sm leading-relaxed text-zinc-500">
-                          {problem.summary}
-                        </p>
-                        <div className="mt-3 flex flex-wrap gap-1">
-                          {problem.evaluationFocus.slice(0, 3).map((f) => (
-                            <span
-                              key={f}
-                              className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-zinc-500"
-                            >
-                              {f}
-                            </span>
-                          ))}
-                        </div>
-                        <span className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-violet-400 opacity-0 transition group-hover:opacity-100">
-                          Open canvas
-                          <ArrowRight className="h-3 w-3" />
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </section>
-            );
-          })}
-        </div>
+        <section aria-label="Modes">
+          <h2 className="mb-4 text-sm font-medium uppercase tracking-wider text-zinc-500">
+            Choose a mode
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {MODES.map((mode) => {
+              const Icon = mode.icon;
+              return (
+                <Link
+                  key={mode.href}
+                  href={mode.href}
+                  className={`group flex flex-col rounded-2xl border bg-zinc-900/40 p-5 transition hover:bg-zinc-900/80 ${mode.accent}`}
+                >
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <Icon className={`h-6 w-6 ${mode.iconClass}`} />
+                    <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                      {mode.tagline}
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-semibold text-white">{mode.title}</h3>
+                  <p className="mt-2 flex-1 text-sm leading-relaxed text-zinc-500">
+                    {mode.body}
+                  </p>
+                  <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-zinc-300 group-hover:text-white">
+                    {mode.cta}
+                    <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
 
         <footer className="mt-16 border-t border-white/10 pt-6 text-xs text-zinc-600">
           Powered by SpaceXAI (xAI) · set <code className="text-zinc-400">XAI_API_KEY</code> in{" "}
