@@ -1,30 +1,30 @@
 # Product
 
-> Stable document. Change only for positioning pivots or new primary modes.
+> Stable document. Change only for positioning pivots or new primary modes.  
+> Mode vocabulary SSOT for agents: this file + deep spec `docs/specs/solo-vs-campaign.md` (Artifact 0 / #13).
 
 ## One-liner
 
-**System Design Lab** is a **system design teaching game**: learn architectures on a drag-and-drop canvas, then **compete in the campaign**—clear levels, survive production **wrenches**, and chase high scores. **SpaceXAI (Grok)** is the interviewer and the chaos engine.
+**System Design Lab** is a **system design teaching game**: learn architectures on a drag-and-drop canvas, then **play Solo Mode** for personal multi-problem levels and **compete in Campaign** seasons for leaderboard rank. **SpaceXAI (Grok)** is the interviewer and scorer.
 
-Not a static whiteboard PDF. Not pure free-form sandbox without stakes. **Learn → play → climb.**
+Not a static whiteboard PDF. Not pure free-form sandbox without stakes. **Learn → practice → Solo → Campaign.**
 
 ## High-level concept
 
 ```
-  LEARN                         PLAY / COMPETE
-  ─────────────────────         ──────────────────────────────
-  Training + guided builds  →   Campaign map (levels + wrenches)
-  Free practice problems    →   Scores, stars, unlocks
-  Building blocks (cache,       Future: 3-day seasons /
-  queue, DB, …)                leaderboards (highest scores win)
+  LEARN                         PRACTICE                    PLAY
+  ─────────────────────         ───────────────────         ──────────────────────────────
+  Training + guided builds  →   Free practice problems  →   Solo Mode (personal levels)
+  Building blocks               (no map / season pressure)  Campaign (3-day seasons + LB)
 ```
 
 | Pillar | What it means |
 | --- | --- |
 | **Subject** | Classic system design first (distributed systems); agentic AI as a second track |
 | **Teaching** | Canvas + training + guided builds + AI Socratic feedback |
-| **Game** | Campaign map, unlocks, wrenches (incidents), stars/progress |
-| **Competition (future)** | Timed campaign seasons (~3 days) ranked by score—not shipped yet |
+| **Play (Solo)** | Personal multi-problem levels; progress and stars without public ranking |
+| **Compete (Campaign)** | Timed **3-day seasons**, shared prompt set, leaderboard by season score |
+| **Practice** | Full problems on the canvas without Solo unlocks or Campaign season rules |
 
 ## Audience
 
@@ -34,17 +34,41 @@ Not a static whiteboard PDF. Not pure free-form sandbox without stakes. **Learn 
 
 ## Product modes
 
-| Mode | Route | Role in the loop |
+Primary vocabulary. **Do not** call the personal progression path “Campaign” once Solo Mode ships; **do not** treat the legacy map+wrenches loop as the competitive season product.
+
+| Mode | Route (target) | Role in the loop | Shipped today? |
+| --- | --- | --- | --- |
+| **Training** | `/training`, `/training/[lessonId]`, guided under `/training/guided/…` | **Learn** — building blocks and step-by-step architectures | **Yes** |
+| **Practice** | Hub `/` → design; target picker **`/practice`** | **Practice** — full problems, AI score, no Solo unlocks / no season rules | **Yes** (picker still on `/`; `/practice` is Artifact 1) |
+| **Solo Mode** | **`/solo`** | **Play** — personal multi-problem levels, duration/progress, stars | **No** (roadmap Artifacts 1–2; #16, #11) |
+| **Campaign** | **`/campaign`** | **Compete** — 3-day seasons, attempts limits, private timer, public leaderboard | **Partial rename collision** — shipped surface is a **solo progress map + wrenches** (pre mode-split). Competitive seasons **not** shipped |
+
+### Solo Mode vs Campaign (agents must not confuse these)
+
+| | **Solo Mode** | **Campaign** (competitive) |
 | --- | --- | --- |
-| **Training** | `/training`, `/training/[lessonId]` | **Learn** — building blocks (cache, CDN, replicas, queues, …) |
-| **Guided builds** | `/training/guided/[buildId]` | **Learn** — step-by-step reference architectures + data-flow |
-| **Free practice** | `/` → `/design/[problemId]` | **Practice** — full problems, AI score, no map unlock pressure |
-| **Campaign** | `/campaign` | **Play / compete** — progressive levels, unlocks, wrench drills, stars |
+| **Purpose** | Personal multi-problem progression | Time-boxed competition vs other players |
+| **Route** | `/solo` | `/campaign` |
+| **Content** | Curated levels (v1: **2** multi-problem levels) | Pre-generated season prompt set (v1: **20** prompts) |
+| **Ranking** | None (personal progress / stars) | Season **leaderboard** by `season_score` |
+| **Auth** | Guests OK; sync when signed in (same dual progress model) | **Google sign-in required** to play / submit |
+| **Timer** | Level/duration UX as designed for Solo | Sticky timer; **time is private** (not on public LB) |
+| **Attempts** | Solo progression rules (not season 3-attempt lock) | **Max 3 attempts per prompt** |
+| **Wrenches** | **None in v1** | **None in v1** (legacy map wrenches ≠ season product) |
+| **References** | Teaching/reference material as appropriate | **Hidden until season ends** |
+| **Scoring** | Stars / level completion (Solo-specific) | Formula id **`v1_correct_diff_cover`** (see spec) |
+
+Deep lock-ins, scoring math, nav, and artifact map: **`docs/specs/solo-vs-campaign.md`**.
+
+### Target primary nav
+
+`Training | Solo Mode | Campaign | Practice`  
+Hub remains `/`. Practice picker migrates to `/practice` when Artifact 1 lands.
 
 ## AI role
 
-- **Evaluate** (`POST /api/evaluate`) — scores tradeoffs, scale, failure modes; Socratic follow-ups (teaching + score fuel)
-- **Wrench** (`POST /api/wrench`) — production incident against the graph (campaign stakes / “game pressure”)
+- **Evaluate** (`POST /api/evaluate`) — scores tradeoffs, scale, failure modes; Socratic follow-ups (teaching + score fuel for Practice / Solo / Campaign)
+- **Wrench** (`POST /api/wrench`) — production incident against the graph (**legacy campaign map** stakes). **Not** part of Solo Mode or competitive Campaign **v1**
 - Model: Vercel AI SDK + `@ai-sdk/xai` → SpaceXAI **`grok-4.5`** (`XAI_API_KEY` server-side)
 
 ## Tracks
@@ -56,31 +80,34 @@ Not a static whiteboard PDF. Not pure free-form sandbox without stakes. **Learn 
 
 ## Auth & progress (product behavior)
 
-- Guests play fully; progress always in **localStorage**
-- Signed-in users (Google via Supabase): **cloud sync** for campaign + training; merge-on-login
-- Auth is soft today; competitive seasons will likely need durable identity (see Future)
+- Guests play Training / Practice / (future) Solo fully; progress always in **localStorage**
+- Signed-in users (Google via Supabase): **cloud sync** for campaign map + training progress today; Solo/Campaign season stores when those modes ship
+- **Competitive Campaign play requires Google sign-in** (durable identity for leaderboard integrity)
 
-## Future (not shipped — do not implement as if live)
+## Future / roadmap (not shipped — do not implement as if live)
 
 | Idea | Intent | Status |
 | --- | --- | --- |
-| **3-day campaign seasons** | Time-boxed events; players compete for **highest scores** over ~3 days | Planned vision only |
-| Leaderboards / ranking | Season standings, maybe friends or global | Depends on seasons + auth |
-| Anti-cheat / score integrity | Server-side validation of campaign scores | Not started |
+| **Solo Mode** (`/solo`) | Personal multi-problem levels (v1: 2 levels) | Planned — Artifacts 1–2 (#16, #11) |
+| **Campaign seasons** (3-day) | Shared 20-prompt set; leaderboard; scoring `v1_correct_diff_cover` | Planned — Artifacts 3–7 (#15, #14, #17, #12, #10) |
+| Practice at `/practice` | Dedicated practice route; hub stays `/` | Planned — Artifact 1 (#16) |
+| Content APIs over constants | Serve Solo/Campaign content from APIs, not only TS constants | Planned with content artifacts |
+| **Plan B (constraint engine)** | Alternate evaluation path | **PARKED** — do not implement |
 
-Agents: list these under BOARD **PLANNED** only; never claim they exist in FEATURES until built.
+Agents: list under BOARD **PLANNED** / epic issues only; never claim seasons or Solo Mode exist in **FEATURES** until built.
 
 ## Non-product (docs only)
 
 - Marketing plans: `docs/marketing/*`
 - Market research: `docs/market-research-viability.md`
 - PR drafts: `docs/pr-drafts/*`
+- Mode split deep spec: `docs/specs/solo-vs-campaign.md`
 
 ## Success signals
 
-- Learners move Training → Practice → Campaign without feeling lost
-- Campaign feels like a **game with system design depth** (not trivia)
+- Learners move Training → Practice → Solo → Campaign without vocabulary confusion
+- Solo feels like a **personal game path**; Campaign feels like a **fair timed competition**
 - AI feedback improves designs between attempts
 - Progress resumes when signed in
-- (Later) Season participation and score competition drive return visits
-- Coding agents do not reimplement shipped surfaces or invent seasons as live
+- Season participation and score competition drive return visits (when shipped)
+- Coding agents do not reimplement shipped surfaces, invent seasons as live, or start Plan B
