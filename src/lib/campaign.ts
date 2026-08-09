@@ -305,10 +305,19 @@ export function markLevelComplete(
   return progress;
 }
 
+/**
+ * Deep link into a Solo map level on the design canvas.
+ * Prefer `?solo=`; legacy `?campaign=` is still accepted by the design route.
+ */
 export function campaignHref(levelId: string): string {
   const level = getCampaignLevel(levelId);
-  if (!level) return "/campaign";
-  return `/design/${level.problemId}?campaign=${levelId}`;
+  if (!level) return "/solo";
+  return `/design/${level.problemId}?solo=${levelId}`;
+}
+
+/** Alias — Solo Mode is the home of the legacy progression map. */
+export function soloHref(levelId: string): string {
+  return campaignHref(levelId);
 }
 
 export function worlds(): Array<{ world: number; name: string; levels: CampaignLevelNode[] }> {

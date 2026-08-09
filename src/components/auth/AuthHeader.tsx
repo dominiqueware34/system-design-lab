@@ -75,7 +75,7 @@ export function AuthHeader() {
 
   const handleSignIn = async () => {
     setBusy(true);
-    const next = pathname && pathname !== "/" ? pathname : "/campaign";
+    const next = pathname && pathname !== "/" ? pathname : "/";
     const { error } = await signInWithGoogle({ next });
     if (error) {
       console.error("[auth] signInWithGoogle", error);

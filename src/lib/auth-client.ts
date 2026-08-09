@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 
 export type SignInWithGoogleOptions = {
-  /** Relative path to land on after OAuth (e.g. /campaign). */
+  /** Relative path to land on after OAuth (e.g. /campaign, /solo). */
   next?: string;
 };
 
@@ -17,9 +17,9 @@ export async function signInWithGoogle(
     return { error: new Error("Supabase is not configured") };
   }
 
-  const next = options.next ?? "/campaign";
+  const next = options.next ?? "/";
   const safeNext =
-    next.startsWith("/") && !next.startsWith("//") ? next : "/campaign";
+    next.startsWith("/") && !next.startsWith("//") ? next : "/";
   const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(safeNext)}`;
 
   const supabase = createClient();
