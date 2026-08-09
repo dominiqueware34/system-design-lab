@@ -26,9 +26,11 @@ SHIPPED (summary — full detail in FEATURES.md)
 IN FLIGHT
   [~] Artifact 0: Solo vs Campaign product vocabulary (docs)
       branch:   docs/solo-campaign-modes
-      worktree: system-design-lab-docs-solo-campaign
+      worktree: (implementer worktree / subagent)
       issue:    #13
-      next:     PRODUCT + solo-vs-campaign spec + BOARD rows 0–7 + AGENTS; open docs PR
+      next:     merge PR #18; then agents may start #16 / #15
+      note:     keep [~] until PR merges; SSOT docs/specs/solo-vs-campaign.md
+      pr:       https://github.com/dominiqueware34/system-design-lab/pull/18
 
 PLANNED (not started — pick one, open a feature branch)
   [ ] Artifact 1: App nav + route shells (/solo, /campaign, /practice)  #16  depends: #13
@@ -39,6 +41,7 @@ PLANNED (not started — pick one, open a feature branch)
   [ ] Artifact 6: Campaign season UI + leaderboard                      #12  depends: #17
   [ ] Artifact 7: Campaign hardening (limits, end, reveal)              #10  depends: #12
   note: Plan B (constraint engine) PARKED — do not start
+  note: scoring formula id v1_correct_diff_cover (see solo-vs-campaign.md)
 
 BLOCKED
   (none)
@@ -53,13 +56,13 @@ Run also: git worktree list && gh pr list --state open
 
 BRANCH / WORKSTREAM              WORKTREE                 TIP      vs MAIN   STATE
 -------------------------------  -----------------------  -------  --------  -----------
-main                             system-design-lab        ce98b6f  CURRENT   claim edits
-docs/solo-campaign-modes         (worktree on claim)      —        missing   #13 IN FLIGHT
+main                             (primary)                2d34cdb  CURRENT   claims only
+docs/solo-campaign-modes         (this PR worktree)       AHEAD    #13 docs  IN FLIGHT
 feat/auth-supabase-p0            system-design-lab-auth-p0 d611fa9  STALE     prune
 feat/map-flavor-p0               system-design-lab-map-p0  b18513b  STALE     prune
 docs/marketing-campaign          system-design-lab-marketing 5bcb8d0 STALE    prune
 
-Open PRs: (none)
+Open PRs: #18 docs/solo-campaign-modes → main (Artifact 0 / #13)
 ```
 
 ## How to add a feature to this board

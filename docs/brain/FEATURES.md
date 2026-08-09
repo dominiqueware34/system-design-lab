@@ -96,6 +96,7 @@ Source: `src/lib/guided-builds.ts`.
 | Google auth | `docs/specs/google-auth.md` |
 | Animated data flow | `docs/specs/animated-data-flow.md` |
 | Application brain design | `docs/specs/application-brain.md` |
+| Solo Mode vs Campaign seasons (roadmap vocabulary + scoring) | `docs/specs/solo-vs-campaign.md` — **not shipped runtime**; do not invent FEATURES rows for Solo/seasons until built |
 | Save-game progress (vscode draft) | `.vscode/specs/save-game-progress.md` |
 
 ## Merged history (do not re-ship)
