@@ -27,16 +27,16 @@ SHIPPED (summary — full detail in FEATURES.md)
   [x] Artifact 3: Catalog schema + 20 season prompts fixture (PR #20 / #15)
   [x] Artifact 4: Campaign seasons DB schema + RLS (PR #21 / #14)
   [x] Artifact 2: Solo multi-problem levels + progress + duration (PR #22 / #11)
+  [x] Artifact 5: Campaign submit API + scoring (PR #23 / #17)
 
 IN FLIGHT
-  [~] Artifact 5: Campaign submit API + scoring
-      branch:   feat/campaign-submit-api
-      worktree: system-design-lab-submit-api
-      issue:    #17
-      next:     campaign-scoring.ts + seasons/current/prompts/start/submit/LB/me APIs
+  [~] Artifact 6: Campaign season UI + leaderboard
+      branch:   feat/campaign-season-ui
+      worktree: system-design-lab-season-ui
+      issue:    #12
+      next:     /campaign hub + play + LB + my stats; wire submit; auth gate
 
 PLANNED
-  [ ] Artifact 6: Campaign season UI + leaderboard                      #12  depends: #17
   [ ] Artifact 7: Campaign hardening                                    #10  depends: #12
   note: Plan B PARKED
   note: scoring v1_correct_diff_cover (solo-vs-campaign.md)
@@ -50,8 +50,8 @@ BLOCKED
 ```
 PARALLEL STATUS
 ===============
-main                             system-design-lab              1e43662  CURRENT   claims
-feat/campaign-submit-api         system-design-lab-submit-api   —        planned   #17
+main                             system-design-lab              c8e3d5c  CURRENT   claims
+feat/campaign-season-ui          system-design-lab-season-ui    —        planned   #12
 STALE worktrees: auth-p0, map-p0, marketing — prune
 Open PRs: (none at claim)
 ```
