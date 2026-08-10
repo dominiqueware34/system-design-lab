@@ -1,71 +1,66 @@
-# Artifact 2 — Solo multi-problem levels (#11)
+# Artifact 5 — Campaign submit API + scoring (#17)
 
-## PR
+**Branch:** `feat/campaign-submit-api`  
+**Status:** Implemented
 
-https://github.com/dominiqueware34/system-design-lab/pull/22
+## Work breakdown
 
-## What shipped
+- [x] Claim BOARD/STATUS; branch `feat/campaign-submit-api`
+- [x] Pure module `src/lib/campaign-scoring.ts` + unit tests
+- [x] GET `/api/campaign/seasons/current` (any)
+- [x] GET `/api/campaign/seasons/:id/prompts` (auth; strip reference)
+- [x] POST `/api/campaign/prompts/:promptId/start` (auth; sticky started_at)
+- [x] POST `/api/campaign/submit` (auth; max 3; server-authoritative; private duration_ms)
+- [x] GET leaderboard (any, no times) + GET `.../me` (auth, private durations OK)
+- [x] Reject 4th attempt; client cannot forge score; open PR
 
-Replace legacy 15×1 CampaignMap on `/solo` with **2 multi-problem levels**:
+## Acceptance
 
-| Level | Title | Content | Unlock |
-| --- | --- | --- | --- |
-| `solo-l1` | Foundations | 10 classic problems | Open |
-| `solo-l2` | Agentic Frontier | 6 agentic problems | All of L1 complete |
+| Check | How |
+| --- | --- |
+| Client cannot forge score | Submit ignores client score fields; server runs SpaceXAI evaluate → bands → points |
+| 4th attempt rejected | HTTP 409 when `priorCount >= max_attempts` (default 3) |
+| started_at sticky | `ensurePromptSession` insert-once; conflict re-selects; no UPDATE |
+| LB payload has no duration | `campaign_leaderboard` select + `sanitizeLeaderboardRow` + fixed JSON shape |
+| Unit tests for scoring | `src/lib/campaign-scoring.test.ts` via `npm test` |
 
-### Content (constants + APIs)
-- `src/lib/solo-levels.ts` — `SOLO_LEVELS` (data-driven)
-- `GET /api/solo/levels`
-- `GET /api/problems`, `GET /api/problems/[id]`
+## Files
 
-### Progress
-- localStorage `sdl-solo-progress-v1`
-- Supabase `solo_progress` (`supabase/migrations/20260809120300_solo_progress.sql`)
-  - Seeds from `campaign_progress` map completions when empty
-- `GET/PUT /api/progress/solo`
-- Merge-on-login includes solo (`POST /api/progress/merge`)
-- Per problem: `bestScore`, `stars`, `durationMs` (first qualifying finish)
-
-### Canvas
-- `/design/[problemId]?solo=solo-l1` (or `solo-l2`)
-- **No wrenches** — uses evaluate API
-- Pass when `score >= passScore` → writes progress + duration
-- Completing one problem ≠ completing level
-
-### UI
-- `SoloHub` on `/solo` — L1/L2 cards, lock state, per-problem stars/duration
-- FEATURES.md Solo Mode entry
+- `src/lib/campaign-scoring.ts` + `.test.ts`
+- `src/lib/campaign-db.ts`, `src/lib/campaign-evaluate.ts`
+- `src/lib/supabase/admin.ts`
+- `src/app/api/campaign/seasons/current/route.ts`
+- `src/app/api/campaign/seasons/[id]/prompts/route.ts`
+- `src/app/api/campaign/seasons/[id]/leaderboard/route.ts`
+- `src/app/api/campaign/seasons/[id]/me/route.ts`
+- `src/app/api/campaign/prompts/[promptId]/start/route.ts`
+- `src/app/api/campaign/submit/route.ts`
+- `docs/brain/FEATURES.md`
 
 ## How to test
 
 ```bash
-npm install
-npm test
-NODE_ENV=production npx next build
-
-# Apply migration in Supabase SQL editor (or CLI):
-# supabase/migrations/20260809120300_solo_progress.sql
-
-npm run dev
+npm test                          # scoring unit tests
+# With Supabase + SERVICE_ROLE + live season seeded:
+# GET  /api/campaign/seasons/current
+# GET  /api/campaign/seasons/:id/leaderboard
+# Auth:
+# GET  /api/campaign/seasons/:id/prompts
+# POST /api/campaign/prompts/:promptId/start
+# POST /api/campaign/submit  { "promptId": "...", "design": { "nodes": [], "edges": [] } }
+# GET  /api/campaign/seasons/:id/me
+# 4th submit → 409
 ```
 
-Manual:
-1. Open `/solo` — L1 unlocked, L2 locked.
-2. Open a L1 problem → canvas shows “Solo · no wrenches”.
-3. Submit design with score ≥ passScore (or mock) → problem marked complete; duration stored.
-4. Confirm one problem complete does **not** unlock L2.
-5. Guest: check `localStorage['sdl-solo-progress-v1']`.
-6. Sign in: merge should hydrate; `GET /api/progress/solo` when authed.
-7. `curl localhost:3000/api/solo/levels` and `/api/problems`.
+Requires: migrations applied, `npm run seed:season` (then set season `status=live`), `SUPABASE_SERVICE_ROLE_KEY`, `XAI_API_KEY` for submit.
 
-## Out of scope (intentional)
+## Leftover risks
 
-- Campaign seasons tables / submit API / leaderboard (Artifact 4 schema already on main via #21)
-- Plan B constraint engine
-- Removing legacy `campaign.ts` / wrench path entirely (`?campaign=w*` still works)
+- Submit depends on live XAI evaluate (latency + cost); no offline mock score path.
+- Service role required for all campaign season routes (anon has no RLS grants).
+- No end-to-end integration tests against real Supabase in CI.
+- Season UI (#12) and hardening (#10) not in scope.
 
-## Risks
+## Deferred
 
-- Supabase migration must be applied or signed-in solo sync/merge will error on missing `solo_progress`.
-- Legacy map progress seeds problems but `durationMs: 0` (unknown).
-- L1 includes `multi-tenant-saas-db` which was not on the old map — full L1 still requires that problem for unlock.
+- None required for acceptance. Campaign season UI remains #12.
