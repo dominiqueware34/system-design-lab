@@ -2,7 +2,7 @@
 
 > **Agents: print this entire file (or the live sections below) in chat BEFORE any implementation.**  
 > Keep this file on **`main`**. Update when starting, pausing, or finishing a feature.  
-> Last updated: 2026-08-09
+> Last updated: 2026-08-10
 
 States: `[ ]` planned · `[~]` in progress · `[x]` done (also listed in FEATURES) · `[-]` blocked · `[!]` needs human
 
@@ -11,7 +11,7 @@ States: `[ ]` planned · `[~]` in progress · `[x]` done (also listed in FEATURE
 ```
 SYSTEM DESIGN LAB — FEATURE BOARD
 =================================
-Last updated: 2026-08-09
+Last updated: 2026-08-10
 
 SHIPPED (summary — full detail in FEATURES.md)
   [x] System design canvas + 16 problems + component catalog
@@ -25,23 +25,17 @@ SHIPPED (summary — full detail in FEATURES.md)
   [x] Artifact 0: Solo vs Campaign vocabulary (PR #18 / #13)
   [x] Artifact 1: App nav + route shells (PR #19 / #16)
   [x] Artifact 3: Catalog schema + 20 season prompts fixture (PR #20 / #15)
+  [x] Artifact 4: Campaign seasons DB schema + RLS (PR #21 / #14)
+  [x] Artifact 2: Solo multi-problem levels + progress + duration (PR #22 / #11)
 
 IN FLIGHT
-  [~] Artifact 2: Solo multi-problem levels + progress + duration
-      branch:   feat/solo-multi-problem
-      worktree: system-design-lab-solo
-      issue:    #11
-      next:     SOLO_LEVELS + progress APIs + hub UI + canvas complete; no wrenches
-
-  [~] Artifact 4: Campaign seasons DB schema + RLS
-      branch:   feat/campaign-seasons-db
-      worktree: system-design-lab-seasons-db
-      issue:    #14
-      next:     migrations profiles/seasons/prompts/sessions/attempts/scores + seed from fixture
-      note:     parallel-safe with #11; no solo tables
+  [~] Artifact 5: Campaign submit API + scoring
+      branch:   feat/campaign-submit-api
+      worktree: system-design-lab-submit-api
+      issue:    #17
+      next:     campaign-scoring.ts + seasons/current/prompts/start/submit/LB/me APIs
 
 PLANNED
-  [ ] Artifact 5: Campaign submit API + scoring                         #17  depends: #15 #14
   [ ] Artifact 6: Campaign season UI + leaderboard                      #12  depends: #17
   [ ] Artifact 7: Campaign hardening                                    #10  depends: #12
   note: Plan B PARKED
@@ -56,9 +50,8 @@ BLOCKED
 ```
 PARALLEL STATUS
 ===============
-main                             system-design-lab        c941853  CURRENT   claims
-feat/solo-multi-problem          (implementer)            —        missing   #11
-feat/campaign-seasons-db         (implementer)            —        missing   #14
+main                             system-design-lab              1e43662  CURRENT   claims
+feat/campaign-submit-api         system-design-lab-submit-api   —        planned   #17
 STALE worktrees: auth-p0, map-p0, marketing — prune
 Open PRs: (none at claim)
 ```
