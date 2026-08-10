@@ -88,8 +88,10 @@ Legacy 15-level map data remains in `src/lib/campaign.ts` for optional `?campaig
 
 ## Not shipped yet (do not invent as live)
 
-- Campaign hardening: season end freeze, reference reveal (Artifact 7 / #10)
+- Campaign rate limits / abuse (#25) · next-season seed automation (#26)
+- Soft free AI quotas · funnel metrics · Solo levels beyond v1 (2 levels)
 - Plan B constraint engine (parked)
+- Note: Artifact 7 freeze + ref reveal **API is shipped** (reduced); season DB status expire is not
 
 ## Training lesson IDs — 16 total
 

@@ -25,3 +25,8 @@ Entrypoints in repo root: `AGENTS.md`, `CLAUDE.md`.
 | Multi-agent / feature branch rules? | AGENTS.md |
 
 Deep design specs stay in `docs/specs/` — link from FEATURES, do not duplicate long prose here.
+
+## Human QA
+
+- Manual end-to-end checklist: [`docs/testing/manual-e2e-plan.md`](../testing/manual-e2e-plan.md)  
+  Run after major merges or before a live season.
