@@ -79,7 +79,7 @@ Multiple agents / worktrees / features **must not** share one branch or pile edi
 
 - Stack: Next.js 16 App Router, React 19, React Flow, AI SDK + xAI `grok-4.5`, Supabase
 - Concept: system design **teaching game** — learn (Training) → Practice → **two play modes:**
-  - **Solo Mode** (`/solo`) — personal multi-problem levels (not shipped until FEATURES)
+  - **Solo Mode** (`/solo`) — personal multi-problem levels (see FEATURES)
   - **Campaign** (`/campaign`) — competitive **3-day seasons** + leaderboard (not shipped until FEATURES)
 - Shipped “campaign map” + wrenches = **legacy pre mode-split** progress game — do not equate with season LB
 - Mode SSOT: `docs/brain/PRODUCT.md` + `docs/specs/solo-vs-campaign.md` (scoring `v1_correct_diff_cover`)

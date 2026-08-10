@@ -18,7 +18,7 @@ import { signInWithGoogle } from "@/lib/auth-client";
 /**
  * Competitive Campaign shell.
  * Guests: pitch + Google CTA. Signed-in: season placeholder until Artifact 6.
- * The legacy 15×1 map lives under Solo Mode at `/solo` — not here.
+ * Solo multi-problem levels live at `/solo` — not here.
  */
 export default function CampaignPage() {
   const envConfigured = hasSupabaseEnv();

@@ -24,11 +24,11 @@ const MODES = [
     href: "/solo",
     title: "Solo Mode",
     tagline: "Play",
-    body: "Personal progression map. Clear levels, survive wrenches, earn stars — no public ranking.",
+    body: "Personal multi-problem levels. Clear Foundations, unlock Agentic Frontier — stars and duration, no ranking.",
     icon: MapIcon,
     accent: "border-amber-500/30 hover:border-amber-400/50",
     iconClass: "text-amber-400",
-    cta: "Open Solo map",
+    cta: "Open Solo Mode",
   },
   {
     href: "/campaign",

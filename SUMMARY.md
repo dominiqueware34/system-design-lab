@@ -1,88 +1,71 @@
-# Artifact 4 — Campaign seasons DB schema (#14)
+# Artifact 2 — Solo multi-problem levels (#11)
 
 ## PR
 
-https://github.com/dominiqueware34/system-design-lab/pull/21
+https://github.com/dominiqueware34/system-design-lab/pull/22
 
-## What shipped (this branch)
+## What shipped
 
-Competitive Campaign **schema + RLS + seed path** (no season UI, no submit API):
+Replace legacy 15×1 CampaignMap on `/solo` with **2 multi-problem levels**:
 
-### Migrations (apply in order)
+| Level | Title | Content | Unlock |
+| --- | --- | --- | --- |
+| `solo-l1` | Foundations | 10 classic problems | Open |
+| `solo-l2` | Agentic Frontier | 6 agentic problems | All of L1 complete |
 
-| File | Tables / objects |
-| --- | --- |
-| `supabase/migrations/20260809120000_profiles.sql` | `profiles` (+ auth.users trigger for display_name/avatar) |
-| `supabase/migrations/20260809120100_campaign_seasons_and_prompts.sql` | `campaign_seasons`, `campaign_prompts`, view `campaign_prompts_public` |
-| `supabase/migrations/20260809120200_campaign_play_tables.sql` | `campaign_prompt_sessions`, `campaign_attempts`, `campaign_season_scores`, view `campaign_leaderboard` |
+### Content (constants + APIs)
+- `src/lib/solo-levels.ts` — `SOLO_LEVELS` (data-driven)
+- `GET /api/solo/levels`
+- `GET /api/problems`, `GET /api/problems/[id]`
 
-### Seed
+### Progress
+- localStorage `sdl-solo-progress-v1`
+- Supabase `solo_progress` (`supabase/migrations/20260809120300_solo_progress.sql`)
+  - Seeds from `campaign_progress` map completions when empty
+- `GET/PUT /api/progress/solo`
+- Merge-on-login includes solo (`POST /api/progress/merge`)
+- Per problem: `bestScore`, `stars`, `durationMs` (first qualifying finish)
 
-- `scripts/seed-season.ts` + `npm run seed:season`
-- Loads `fixtures/campaign/season-prompts-v1.json` → **draft** season `season-v1-draft` + 20 prompts
-- Stores client-safe `problem` JSONB separately from server-only `reference_design` / `rationale`
-- `rules`: `{ score_formula: "v1_correct_diff_cover", max_attempts: 3 }`
+### Canvas
+- `/design/[problemId]?solo=solo-l1` (or `solo-l2`)
+- **No wrenches** — uses evaluate API
+- Pass when `score >= passScore` → writes progress + duration
+- Completing one problem ≠ completing level
 
-### Security invariants (SQL comments + RLS/grants)
+### UI
+- `SoloHub` on `/solo` — L1/L2 cards, lock state, per-problem stars/duration
+- FEATURES.md Solo Mode entry
 
-- No authenticated INSERT/UPDATE/DELETE on attempts or season_scores (service_role later in Artifact 5)
-- `reference_design` + `rationale` **column-revoked** from JWT roles; public view omits them
-- Draft seasons not selectable by clients; live/ended only
-- Sticky sessions: own INSERT/SELECT, no UPDATE (started_at sticky)
-- Public LB view has **no duration fields**
-
-## How to apply migrations
-
-### Option A — Supabase SQL Editor
-
-1. Open project → SQL Editor.
-2. Paste/run each file **in timestamp order**:
-   - `20260809120000_profiles.sql`
-   - `20260809120100_campaign_seasons_and_prompts.sql`
-   - `20260809120200_campaign_play_tables.sql`
-3. (If not already applied) also ensure progress migration `20260327120000_progress_tables.sql` exists.
-
-### Option B — Supabase CLI
-
-```bash
-supabase db push
-# or: supabase migration up
-```
-
-## How to seed
-
-```bash
-# validate fixture only (no secrets)
-npm run seed:season -- --dry-run
-
-# write draft season (requires service role)
-export NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co
-export SUPABASE_SERVICE_ROLE_KEY=...   # never NEXT_PUBLIC_
-npm run seed:season
-# optional: --slug other-draft --title "My draft"
-```
-
-Draft seasons stay **invisible** to authenticated clients until status is set to `live` (operator / later artifact).
-
-## How to test (local, no DB)
+## How to test
 
 ```bash
 npm install
 npm test
-npm run seed:season -- --dry-run
+NODE_ENV=production npx next build
+
+# Apply migration in Supabase SQL editor (or CLI):
+# supabase/migrations/20260809120300_solo_progress.sql
+
+npm run dev
 ```
+
+Manual:
+1. Open `/solo` — L1 unlocked, L2 locked.
+2. Open a L1 problem → canvas shows “Solo · no wrenches”.
+3. Submit design with score ≥ passScore (or mock) → problem marked complete; duration stored.
+4. Confirm one problem complete does **not** unlock L2.
+5. Guest: check `localStorage['sdl-solo-progress-v1']`.
+6. Sign in: merge should hydrate; `GET /api/progress/solo` when authed.
+7. `curl localhost:3000/api/solo/levels` and `/api/problems`.
 
 ## Out of scope (intentional)
 
-- Solo multi-problem / `solo_progress` / DesignWorkspace (#11)
-- Campaign submit API + scoring runtime (#17 / Artifact 5)
-- Season UI + leaderboard UI (#12 / Artifact 6)
-- Hardening / auto end / reference reveal (#10 / Artifact 7)
-- Secrets committed
+- Campaign seasons tables / submit API / leaderboard (Artifact 4 schema already on main via #21)
+- Plan B constraint engine
+- Removing legacy `campaign.ts` / wrench path entirely (`?campaign=w*` still works)
 
 ## Risks
 
-- Column-level `GRANT SELECT (…)` on `campaign_prompts` depends on Postgres privileges; if a host role still has blanket SELECT, double-check with `\dp` / Supabase policy tests. Prefer `campaign_prompts_public` view in APIs.
-- `security_invoker` views need Postgres 15+ (Supabase default).
-- Seed refuses to reseed a season that is already `live` — use a new slug.
-- Promoting draft → live is **manual** (no operator UI yet); do not flip live until Artifact 5 is ready.
+- Supabase migration must be applied or signed-in solo sync/merge will error on missing `solo_progress`.
+- Legacy map progress seeds problems but `durationMs: 0` (unknown).
+- L1 includes `multi-tenant-saas-db` which was not on the old map — full L1 still requires that problem for unlock.

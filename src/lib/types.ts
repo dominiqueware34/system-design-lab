@@ -211,6 +211,51 @@ export interface CampaignProgress {
   lastPlayedLevelId?: string;
 }
 
+/** Per-problem Solo Mode progress (after a qualifying pass). */
+export interface SoloProblemRecord {
+  bestScore: number;
+  /** 1–3 stars from score vs passScore */
+  stars: number;
+  /**
+   * Wall-clock ms for the first qualifying finish.
+   * 0 when seeded from legacy campaign map (unknown duration).
+   */
+  durationMs: number;
+  completedAt?: string;
+}
+
+/**
+ * Solo multi-problem progress (localStorage `sdl-solo-progress-v1` +
+ * Supabase `solo_progress`). Completing one problem ≠ completing a level.
+ */
+export interface SoloProgress {
+  /** problemId → best run */
+  problems: Record<string, SoloProblemRecord>;
+  /** Level ids where every problem in that level is completed */
+  completedLevelIds: string[];
+  lastPlayedLevelId?: string;
+  lastPlayedProblemId?: string;
+}
+
+/** A problem slot inside a Solo multi-problem level. */
+export interface SoloLevelProblemRef {
+  problemId: string;
+  /** Min evaluate score (0–100) to count as complete */
+  passScore: number;
+  order: number;
+}
+
+/** Solo Mode multi-problem level (data-driven; set will grow). */
+export interface SoloLevel {
+  id: string;
+  title: string;
+  description: string;
+  track: ProblemTrack;
+  /** Level ids that must be fully complete first */
+  unlocksAfter: string[];
+  problems: SoloLevelProblemRef[];
+}
+
 export interface ChatMessage {
   role: "assistant" | "user" | "system";
   content: string;

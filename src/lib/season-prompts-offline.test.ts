@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { seasonPromptsFixtureSchema } from "@/lib/campaign-prompt-schema";
 import { validateDesignGraph } from "@/lib/design-graph-validate";
 import { buildOfflineSeasonPrompts } from "@/lib/season-prompts-offline";
+import type { DesignGraph } from "@/lib/types";
 
 describe("offline season prompts pack", () => {
   it("builds exactly 20 catalog-valid prompts", () => {
@@ -13,7 +14,7 @@ describe("offline season prompts pack", () => {
     assert.equal(ids.size, 20, "ids must be unique");
 
     for (const p of prompts) {
-      const result = validateDesignGraph(p.referenceDesign);
+      const result = validateDesignGraph(p.referenceDesign as DesignGraph);
       assert.equal(
         result.ok,
         true,

@@ -49,7 +49,9 @@ function validatePromptCatalog(prompt: SeasonPrompt, index: number): string[] {
     );
     return errors;
   }
-  const graphResult = validateDesignGraph(prompt.referenceDesign);
+  const graphResult = validateDesignGraph(
+    prompt.referenceDesign as import("../src/lib/types").DesignGraph
+  );
   if (!graphResult.ok) {
     for (const issue of graphResult.issues) {
       errors.push(

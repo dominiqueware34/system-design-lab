@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { DesignWorkspace } from "@/components/canvas/DesignWorkspace";
 import { getProblemById, PROBLEMS } from "@/lib/problems";
 import { getCampaignLevel } from "@/lib/campaign";
+import { getSoloLevel, getSoloLevelProblem } from "@/lib/solo-levels";
 
 export default async function DesignPage({
   params,
@@ -12,24 +13,40 @@ export default async function DesignPage({
 }) {
   const { problemId } = await params;
   const sp = await searchParams;
-  // Prefer ?solo=; accept legacy ?campaign= as Solo map alias
-  const levelParam = sp.solo || sp.campaign;
   const problem = getProblemById(problemId);
 
   if (!problem) {
     notFound();
   }
 
-  // Validate Solo map level points at this problem
-  let campaignLevelId: string | undefined;
-  if (levelParam) {
-    const level = getCampaignLevel(levelParam);
-    if (level && level.problemId === problemId) {
-      campaignLevelId = level.id;
+  // Prefer multi-problem Solo levels (?solo=solo-l1)
+  let soloLevelId: string | undefined;
+  if (sp.solo) {
+    const soloLevel = getSoloLevel(sp.solo);
+    if (soloLevel && getSoloLevelProblem(soloLevel.id, problemId)) {
+      soloLevelId = soloLevel.id;
     }
   }
 
-  return <DesignWorkspace problem={problem} campaignLevelId={campaignLevelId} />;
+  // Legacy 15-level map: ?campaign=w1-l1 or old ?solo=w1-l1 when not a solo level id
+  let campaignLevelId: string | undefined;
+  if (!soloLevelId) {
+    const levelParam = sp.campaign || sp.solo;
+    if (levelParam) {
+      const level = getCampaignLevel(levelParam);
+      if (level && level.problemId === problemId) {
+        campaignLevelId = level.id;
+      }
+    }
+  }
+
+  return (
+    <DesignWorkspace
+      problem={problem}
+      soloLevelId={soloLevelId}
+      campaignLevelId={campaignLevelId}
+    />
+  );
 }
 
 export function generateStaticParams() {

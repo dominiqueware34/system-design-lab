@@ -35,6 +35,11 @@ import {
 import { buildHeuristicScenarios } from "@/lib/flow-scenarios";
 import { serializeDesign } from "@/lib/serialize-design";
 import { getCampaignLevel, markLevelComplete } from "@/lib/campaign";
+import {
+  getSoloLevel,
+  getSoloLevelProblem,
+  markSoloProblemComplete,
+} from "@/lib/solo-levels";
 import type {
   AttributeValue,
   CampaignLevelNode,
@@ -44,38 +49,58 @@ import type {
   DesignWrench,
   EvaluationResult,
   FollowUpChallenge,
+  SoloLevel,
 } from "@/lib/types";
 
 const nodeTypes = { design: DesignNode };
 
 interface DesignWorkspaceProps {
   problem: DesignProblem;
-  /** When set, run Solo map flow with AI wrenches (legacy progression) */
+  /** Multi-problem Solo Mode level id (e.g. solo-l1). No wrenches. */
+  soloLevelId?: string;
+  /** When set, run legacy map flow with AI wrenches */
   campaignLevelId?: string;
 }
 
-function DesignWorkspaceInner({ problem, campaignLevelId }: DesignWorkspaceProps) {
+function DesignWorkspaceInner({
+  problem,
+  soloLevelId,
+  campaignLevelId,
+}: DesignWorkspaceProps) {
   const router = useRouter();
+  const soloLevel: SoloLevel | undefined = soloLevelId
+    ? getSoloLevel(soloLevelId)
+    : undefined;
+  const soloSlot = soloLevelId
+    ? getSoloLevelProblem(soloLevelId, problem.id)
+    : undefined;
+  const isSolo = !!soloLevel && !!soloSlot;
+
   const campaignLevel: CampaignLevelNode | undefined = campaignLevelId
     ? getCampaignLevel(campaignLevelId)
     : undefined;
-  const isCampaign = !!campaignLevel;
+  /** Legacy wrench map only — never used for multi-problem Solo. */
+  const isCampaign = !!campaignLevel && !isSolo;
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const soloStartedAt = useRef<number>(
+    typeof performance !== "undefined" ? performance.now() : Date.now()
+  );
   const { screenToFlowPosition } = useReactFlow();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node<DesignNodeData>>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  // Free practice evaluation state
+  // Free practice + Solo evaluation state
   const [evalOpen, setEvalOpen] = useState(false);
   const [evalLoading, setEvalLoading] = useState(false);
   const [evalError, setEvalError] = useState<string | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationResult | null>(null);
   const [activeFollowUp, setActiveFollowUp] = useState<FollowUpChallenge | null>(null);
   const [history, setHistory] = useState<Array<{ role: string; content: string }>>([]);
+  const [soloPassed, setSoloPassed] = useState(false);
 
-  // Campaign chaos state
+  // Campaign chaos state (legacy map)
   const [phase, setPhase] = useState<CampaignPhase>("design");
   const [wrenchOpen, setWrenchOpen] = useState(false);
   const [wrenchLoading, setWrenchLoading] = useState(false);
@@ -89,7 +114,9 @@ function DesignWorkspaceInner({ problem, campaignLevelId }: DesignWorkspaceProps
   const [flowOpen, setFlowOpen] = useState(false);
 
   const totalWrenches = campaignLevel?.wrenchCount ?? 1;
-  const passScore = campaignLevel?.passScore ?? 60;
+  const passScore = isSolo
+    ? (soloSlot?.passScore ?? 60)
+    : (campaignLevel?.passScore ?? 60);
 
   const flowScenarios = useMemo(
     () => buildHeuristicScenarios(nodes, edges),
@@ -199,7 +226,7 @@ function DesignWorkspaceInner({ problem, campaignLevelId }: DesignWorkspaceProps
     setSelectedId(null);
   }, [setNodes, setEdges]);
 
-  /** Free-practice submit */
+  /** Free-practice + Solo Mode submit (evaluate API; no wrenches). */
   const submitDesign = useCallback(
     async (isFollowUpFix: boolean) => {
       if (nodes.length === 0) {
@@ -230,6 +257,7 @@ function DesignWorkspaceInner({ problem, campaignLevelId }: DesignWorkspaceProps
 
         const result = data as EvaluationResult;
         setEvaluation(result);
+        setLastScore(result.score);
 
         setHistory((h) => [
           ...h,
@@ -245,7 +273,22 @@ function DesignWorkspaceInner({ problem, campaignLevelId }: DesignWorkspaceProps
           },
         ]);
 
-        if (result.followUp && !result.isComplete) {
+        // Solo multi-problem: pass ≥ passScore writes progress + first-finish duration
+        if (isSolo && soloLevelId && result.score >= passScore) {
+          const now =
+            typeof performance !== "undefined" ? performance.now() : Date.now();
+          const durationMs = Math.max(0, Math.round(now - soloStartedAt.current));
+          markSoloProblemComplete(
+            soloLevelId,
+            problem.id,
+            result.score,
+            passScore,
+            durationMs
+          );
+          setSoloPassed(true);
+        }
+
+        if (result.followUp && !result.isComplete && !(isSolo && result.score >= passScore)) {
           setActiveFollowUp(result.followUp);
         } else {
           setActiveFollowUp(null);
@@ -256,7 +299,7 @@ function DesignWorkspaceInner({ problem, campaignLevelId }: DesignWorkspaceProps
         setEvalLoading(false);
       }
     },
-    [nodes, edges, problem, activeFollowUp, history]
+    [nodes, edges, problem, activeFollowUp, history, isSolo, soloLevelId, passScore]
   );
 
   /** Campaign: deploy design → AI throws wrench */
@@ -421,6 +464,14 @@ function DesignWorkspaceInner({ problem, campaignLevelId }: DesignWorkspaceProps
   ]);
 
   const primaryAction = () => {
+    if (isSolo) {
+      if (soloPassed) {
+        router.push("/solo");
+        return;
+      }
+      void submitDesign(!!activeFollowUp);
+      return;
+    }
     if (!isCampaign) {
       void submitDesign(!!activeFollowUp);
       return;
@@ -437,6 +488,10 @@ function DesignWorkspaceInner({ problem, campaignLevelId }: DesignWorkspaceProps
   };
 
   const primaryLabel = (() => {
+    if (isSolo) {
+      if (soloPassed) return "Back to Solo";
+      return activeFollowUp ? "Submit fix" : "Submit design";
+    }
     if (!isCampaign) return activeFollowUp ? "Submit fix" : "Submit design";
     if (levelPassed) return "Back to map";
     if (activeWrench && phase === "wrench") return "Submit wrench fix";
@@ -464,7 +519,9 @@ if (flowOpen) {
                   ? campaignLevel.mapLabel
                   : problem.title}
               </p>
-              <p className="text-[11px] text-sky-400">Data flow playback</p>
+              <p className="text-[11px] text-sky-400">
+                Data flow playback{isSolo ? " · Solo" : ""}
+              </p>
             </div>
           </div>
         </header>
@@ -488,11 +545,11 @@ if (flowOpen) {
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 px-4">
         <div className="flex items-center gap-3">
           <Link
-            href={isCampaign ? "/solo" : "/practice"}
+            href={isSolo || isCampaign ? "/solo" : "/practice"}
             className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-zinc-100"
           >
             <ArrowLeft className="h-4 w-4" />
-            {isCampaign ? "Map" : "Problems"}
+            {isSolo ? "Solo" : isCampaign ? "Map" : "Problems"}
           </Link>
           <div className="h-4 w-px bg-white/10" />
           <div>
@@ -502,13 +559,22 @@ if (flowOpen) {
                 : problem.title}
             </p>
             <p className="text-[11px] capitalize text-zinc-500">
-              {isCampaign
-                ? `Solo · W${campaignLevel?.world} · ${phase}${
-                    levelPassed ? " · cleared" : ""
+              {isSolo
+                ? `${soloLevel?.title ?? "Solo"} · pass ≥ ${passScore}${
+                    soloPassed ? " · cleared" : ""
                   }`
-                : problem.difficulty}
+                : isCampaign
+                  ? `Legacy map · W${campaignLevel?.world} · ${phase}${
+                      levelPassed ? " · cleared" : ""
+                    }`
+                  : problem.difficulty}
             </p>
           </div>
+          {isSolo ? (
+            <span className="hidden items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-300 sm:inline-flex">
+              Solo · no wrenches
+            </span>
+          ) : null}
           {isCampaign ? (
             <span className="hidden items-center gap-1 rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[10px] font-medium text-rose-300 sm:inline-flex">
               <Swords className="h-3 w-3" />
@@ -547,7 +613,9 @@ if (flowOpen) {
             className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60 ${
               isCampaign
                 ? "bg-rose-600 hover:bg-rose-500"
-                : "bg-violet-600 hover:bg-violet-500"
+                : isSolo
+                  ? "bg-emerald-600 hover:bg-emerald-500"
+                  : "bg-violet-600 hover:bg-violet-500"
             }`}
           >
             {evalLoading || wrenchLoading ? (
@@ -637,6 +705,23 @@ if (flowOpen) {
             />
           ) : (
             <>
+              {isSolo && soloPassed && !evalOpen ? (
+                <div className="absolute bottom-3 left-1/2 z-10 w-[min(480px,calc(100%-2rem))] -translate-x-1/2 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-4 py-3 text-center shadow-xl backdrop-blur">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-300">
+                    Problem cleared · score {lastScore}
+                  </p>
+                  <p className="mt-1 text-sm text-zinc-100">
+                    Progress saved. Finish every problem in the level to unlock the next.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => router.push("/solo")}
+                    className="mt-2 text-xs font-medium text-emerald-200 underline"
+                  >
+                    Back to Solo hub
+                  </button>
+                </div>
+              ) : null}
               {activeFollowUp && !evalOpen ? (
                 <div className="absolute bottom-3 left-1/2 z-10 w-[min(480px,calc(100%-2rem))] -translate-x-1/2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center shadow-xl backdrop-blur">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-400">
@@ -674,10 +759,18 @@ if (flowOpen) {
   );
 }
 
-export function DesignWorkspace({ problem, campaignLevelId }: DesignWorkspaceProps) {
+export function DesignWorkspace({
+  problem,
+  soloLevelId,
+  campaignLevelId,
+}: DesignWorkspaceProps) {
   return (
     <ReactFlowProvider>
-      <DesignWorkspaceInner problem={problem} campaignLevelId={campaignLevelId} />
+      <DesignWorkspaceInner
+        problem={problem}
+        soloLevelId={soloLevelId}
+        campaignLevelId={campaignLevelId}
+      />
     </ReactFlowProvider>
   );
 }
