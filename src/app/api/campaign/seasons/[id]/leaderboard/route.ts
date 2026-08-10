@@ -38,8 +38,13 @@ export async function GET(
   const limit = limitRaw ? Number.parseInt(limitRaw, 10) : 50;
 
   try {
+    const nowMs = Date.now();
     const season = await fetchSeasonById(admin, seasonId);
-    if (!season || season.status === "draft") {
+    if (!season) {
+      return NextResponse.json({ error: "Season not found" }, { status: 404 });
+    }
+    const publicSeason = serializeSeasonPublic(season, nowMs);
+    if (publicSeason.status === "draft") {
       return NextResponse.json({ error: "Season not found" }, { status: 404 });
     }
 
@@ -67,7 +72,7 @@ export async function GET(
 
     // Final payload shape has no duration fields by construction.
     return NextResponse.json({
-      season: serializeSeasonPublic(season),
+      season: publicSeason,
       leaderboard: entries,
     });
   } catch (err) {

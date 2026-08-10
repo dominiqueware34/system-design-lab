@@ -40,8 +40,13 @@ export async function GET(
   }
 
   try {
+    const nowMs = Date.now();
     const season = await fetchSeasonById(admin, seasonId);
-    if (!season || season.status === "draft") {
+    if (!season) {
+      return NextResponse.json({ error: "Season not found" }, { status: 404 });
+    }
+    const publicSeason = serializeSeasonPublic(season, nowMs);
+    if (publicSeason.status === "draft") {
       return NextResponse.json({ error: "Season not found" }, { status: 404 });
     }
 
@@ -92,7 +97,7 @@ export async function GET(
     const score = scoreRes.data;
 
     return NextResponse.json({
-      season: serializeSeasonPublic(season),
+      season: publicSeason,
       score: score
         ? {
             seasonScore: Number(score.season_score ?? 0),

@@ -3,6 +3,7 @@ import {
   ensurePromptSession,
   fetchPromptPublic,
   fetchSeasonById,
+  isSeasonOpenForPlay,
 } from "@/lib/campaign-db";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getOptionalUser } from "@/lib/supabase/server";
@@ -45,9 +46,12 @@ export async function POST(
     }
 
     const season = await fetchSeasonById(admin, prompt.season_id);
-    if (!season || season.status !== "live") {
+    if (!season || !isSeasonOpenForPlay(season)) {
       return NextResponse.json(
-        { error: "Season is not open for play" },
+        {
+          error: "Season is not open for play",
+          reason: "season_frozen_or_ended",
+        },
         { status: 403 }
       );
     }

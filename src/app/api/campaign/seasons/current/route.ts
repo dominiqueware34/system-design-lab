@@ -9,7 +9,8 @@ export const runtime = "nodejs";
 
 /**
  * GET /api/campaign/seasons/current — public (any).
- * Returns the live season metadata, or null season when none is live.
+ * Returns the effectively live season for competitive play, or null.
+ * Honors ends_at/starts_at (pure effective status; no DB status write).
  */
 export async function GET() {
   const admin = createServiceClient();
@@ -24,11 +25,11 @@ export async function GET() {
   }
 
   try {
-    const season = await fetchCurrentSeason(admin);
-    if (!season) {
-      return NextResponse.json({ season: null });
-    }
-    return NextResponse.json({ season: serializeSeasonPublic(season) });
+    const nowMs = Date.now();
+    const season = await fetchCurrentSeason(admin, nowMs);
+    return NextResponse.json({
+      season: season ? serializeSeasonPublic(season, nowMs) : null,
+    });
   } catch (err) {
     console.error("[api/campaign/seasons/current]", err);
     const message =

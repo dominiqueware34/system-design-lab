@@ -1,6 +1,11 @@
 /**
- * Campaign season DB helpers (Artifact 5).
- * Prefer service role for writes and public reads; never return reference_design.
+ * Campaign season DB helpers (Artifact 5 + 7 reduced).
+ * Prefer service role for writes and public reads.
+ * Never return reference_design unless season is effectively ended.
+ *
+ * Status lifecycle persistence (live → ended) is NOT done in the Next app.
+ * See docs/specs/background-jobs.md (Cron → Edge Function). Request paths
+ * only evaluate timestamps for freeze / reference reveal.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -13,6 +18,12 @@ import {
   type BestPromptSnapshot,
   type CampaignDifficulty,
 } from "@/lib/campaign-scoring";
+import {
+  effectiveSeasonStatus,
+  isSeasonOpenForPlay,
+  mayRevealReferenceDesign,
+  type CampaignSeasonStatus,
+} from "@/lib/campaign-season-status";
 
 export type CampaignSeasonRow = {
   id: string;
@@ -35,6 +46,9 @@ export type CampaignPromptPublic = {
   track: string;
   sort_order: number;
   created_at?: string;
+  /** Only populated when season effectively ended (post-season reveal). */
+  reference_design?: unknown;
+  rationale?: unknown;
 };
 
 export type CampaignAttemptRow = {
@@ -55,32 +69,10 @@ export type CampaignAttemptRow = {
 const PUBLIC_PROMPT_COLUMNS =
   "id, season_id, prompt_key, problem, difficulty, track, sort_order, created_at";
 
-/** Live season preferred (most recently started); null if none. */
-export async function fetchCurrentSeason(
-  admin: SupabaseClient
-): Promise<CampaignSeasonRow | null> {
-  const nowMs = Date.now();
+const REVEAL_PROMPT_COLUMNS =
+  "id, season_id, prompt_key, problem, difficulty, track, sort_order, created_at, reference_design, rationale";
 
-  const { data: liveRows, error } = await admin
-    .from("campaign_seasons")
-    .select("*")
-    .eq("status", "live")
-    .order("starts_at", { ascending: false, nullsFirst: false });
-
-  if (error) throw error;
-  const rows = (liveRows ?? []) as CampaignSeasonRow[];
-  if (rows.length === 0) return null;
-
-  // Prefer a live season whose window contains now; else first live row.
-  const inWindow = rows.find((s) => {
-    const startOk =
-      !s.starts_at || Date.parse(s.starts_at) <= nowMs;
-    const endOk = !s.ends_at || Date.parse(s.ends_at) >= nowMs;
-    return startOk && endOk;
-  });
-  return inWindow ?? rows[0] ?? null;
-}
-
+/** Fetch season by id (read-only; no status writes). */
 export async function fetchSeasonById(
   admin: SupabaseClient,
   seasonId: string
@@ -94,14 +86,41 @@ export async function fetchSeasonById(
   return (data as CampaignSeasonRow | null) ?? null;
 }
 
-/** Client-safe prompts — never selects reference_design / rationale. */
+/**
+ * Current competitive season: effectively live only (timestamps).
+ * Read-only — does not flip DB status (background jobs later).
+ */
+export async function fetchCurrentSeason(
+  admin: SupabaseClient,
+  nowMs: number = Date.now()
+): Promise<CampaignSeasonRow | null> {
+  const { data: liveRows, error } = await admin
+    .from("campaign_seasons")
+    .select("*")
+    .eq("status", "live")
+    .order("starts_at", { ascending: false, nullsFirst: false });
+
+  if (error) throw error;
+  const rows = (liveRows ?? []) as CampaignSeasonRow[];
+  const open = rows.filter((s) => isSeasonOpenForPlay(s, nowMs));
+  return open[0] ?? null;
+}
+
+/**
+ * Client-safe prompts — strips reference_design unless season is ended.
+ * When reveal is allowed, includes reference_design + rationale.
+ */
 export async function fetchSeasonPromptsPublic(
   admin: SupabaseClient,
-  seasonId: string
+  seasonId: string,
+  options?: { includeReference?: boolean }
 ): Promise<CampaignPromptPublic[]> {
+  const columns = options?.includeReference
+    ? REVEAL_PROMPT_COLUMNS
+    : PUBLIC_PROMPT_COLUMNS;
   const { data, error } = await admin
     .from("campaign_prompts")
-    .select(PUBLIC_PROMPT_COLUMNS)
+    .select(columns)
     .eq("season_id", seasonId)
     .order("sort_order", { ascending: true });
   if (error) throw error;
@@ -120,6 +139,13 @@ export async function fetchPromptPublic(
   if (error) throw error;
   return (data as CampaignPromptPublic | null) ?? null;
 }
+
+export {
+  effectiveSeasonStatus,
+  isSeasonOpenForPlay,
+  mayRevealReferenceDesign,
+};
+export type { CampaignSeasonStatus };
 
 /**
  * Sticky start: insert if missing; on conflict return existing started_at.
@@ -382,14 +408,25 @@ export async function fetchLeaderboard(
   return (data ?? []).map((r) => sanitizeLeaderboardRow(r as Record<string, unknown>));
 }
 
-export function serializeSeasonPublic(season: CampaignSeasonRow) {
+/**
+ * Public season JSON. `status` is the **effective** status (timestamps applied).
+ * `dbStatus` is the raw column when it differs (optional operator signal).
+ */
+export function serializeSeasonPublic(
+  season: CampaignSeasonRow,
+  nowMs: number = Date.now()
+) {
+  const effective = effectiveSeasonStatus(season, nowMs);
   return {
     id: season.id,
     slug: season.slug,
     title: season.title,
-    status: season.status,
+    status: effective,
+    dbStatus: season.status !== effective ? season.status : undefined,
     startsAt: season.starts_at,
     endsAt: season.ends_at,
+    openForPlay: effective === "live",
+    referenceReveal: effective === "ended",
     rules: season.rules ?? {
       score_formula: SCORE_FORMULA_ID,
       max_attempts: 3,
@@ -397,8 +434,15 @@ export function serializeSeasonPublic(season: CampaignSeasonRow) {
   };
 }
 
-export function serializePromptPublic(p: CampaignPromptPublic) {
-  return {
+/**
+ * Prompt JSON. Never includes reference_design unless `includeReference` is true
+ * (caller must only pass true when season is effectively ended).
+ */
+export function serializePromptPublic(
+  p: CampaignPromptPublic,
+  options?: { includeReference?: boolean }
+) {
+  const base = {
     id: p.id,
     seasonId: p.season_id,
     promptKey: p.prompt_key,
@@ -406,6 +450,13 @@ export function serializePromptPublic(p: CampaignPromptPublic) {
     difficulty: p.difficulty,
     track: p.track,
     sortOrder: p.sort_order,
-    // reference_design intentionally omitted
   };
+  if (options?.includeReference) {
+    return {
+      ...base,
+      referenceDesign: p.reference_design ?? null,
+      rationale: p.rationale ?? null,
+    };
+  }
+  return base;
 }

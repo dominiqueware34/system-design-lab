@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   fetchSeasonById,
   fetchSeasonPromptsPublic,
+  mayRevealReferenceDesign,
   serializePromptPublic,
   serializeSeasonPublic,
 } from "@/lib/campaign-db";
@@ -12,7 +13,8 @@ export const runtime = "nodejs";
 
 /**
  * GET /api/campaign/seasons/:id/prompts — auth required.
- * Strips reference_design / rationale (column-limited select).
+ * Strips reference_design / rationale while live/draft.
+ * When season is effectively ended, includes referenceDesign + rationale.
  */
 export async function GET(
   _req: Request,
@@ -40,15 +42,29 @@ export async function GET(
   }
 
   try {
+    const nowMs = Date.now();
     const season = await fetchSeasonById(admin, seasonId);
-    if (!season || season.status === "draft") {
+    if (!season) {
       return NextResponse.json({ error: "Season not found" }, { status: 404 });
     }
 
-    const prompts = await fetchSeasonPromptsPublic(admin, seasonId);
+    // Draft seasons are not visible to players (operator-only).
+    const publicSeason = serializeSeasonPublic(season, nowMs);
+    if (publicSeason.status === "draft") {
+      return NextResponse.json({ error: "Season not found" }, { status: 404 });
+    }
+
+    const reveal = mayRevealReferenceDesign(season, nowMs);
+    const prompts = await fetchSeasonPromptsPublic(admin, seasonId, {
+      includeReference: reveal,
+    });
+
     return NextResponse.json({
-      season: serializeSeasonPublic(season),
-      prompts: prompts.map(serializePromptPublic),
+      season: publicSeason,
+      prompts: prompts.map((p) =>
+        serializePromptPublic(p, { includeReference: reveal })
+      ),
+      referenceRevealed: reveal,
     });
   } catch (err) {
     console.error("[api/campaign/seasons/:id/prompts]", err);
