@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import {
   SEASON_PROMPT_TARGET,
-  fetchCurrentSeasonContext,
+  fetchCurrentSeason,
   fetchMySeason,
   fetchSeasonPrompts,
   formatCountdown,
@@ -40,8 +40,6 @@ type HubState =
       attempts: MeAttempt[];
       sessions: MeSession[];
       promptCount: number;
-      /** Post-season: play frozen; references may be present on prompts. */
-      ended: boolean;
     };
 
 function DiffBadge({ difficulty }: { difficulty: string }) {
@@ -82,9 +80,8 @@ export function CampaignHub() {
   const load = useCallback(async () => {
     setState({ status: "loading" });
     try {
-      const { season, endedSeason } = await fetchCurrentSeasonContext();
-      const active = season ?? endedSeason;
-      if (!active) {
+      const season = await fetchCurrentSeason();
+      if (!season) {
         setState({
           status: "empty",
           message:
@@ -92,23 +89,17 @@ export function CampaignHub() {
         });
         return;
       }
-
-      const ended =
-        !season && !!endedSeason
-          ? true
-          : active.status === "ended" || active.openForPlay === false;
-
-      if (!ended && active.status !== "live") {
+      if (season.status !== "live") {
         setState({
           status: "empty",
-          message: `Season “${active.title}” is ${active.status}. Play opens when status is live.`,
+          message: `Season “${season.title}” is ${season.status}. Play opens when status is live.`,
         });
         return;
       }
 
       const [promptsRes, meRes] = await Promise.all([
-        fetchSeasonPrompts(active.id),
-        fetchMySeason(active.id).catch(() => null),
+        fetchSeasonPrompts(season.id),
+        fetchMySeason(season.id).catch(() => null),
       ]);
 
       setState({
@@ -119,7 +110,6 @@ export function CampaignHub() {
         attempts: meRes?.attempts ?? [],
         sessions: meRes?.sessions ?? [],
         promptCount: meRes?.promptCount ?? promptsRes.prompts.length,
-        ended,
       });
     } catch (err) {
       setState({
@@ -206,7 +196,7 @@ export function CampaignHub() {
     );
   }
 
-  const { season, prompts, score, promptCount, ended } = state;
+  const { season, prompts, score, promptCount } = state;
   const maxAttempts = maxAttemptsFromRules(season.rules, 3);
   const scored = score?.promptsScored ?? 0;
   const target = promptCount || SEASON_PROMPT_TARGET;
@@ -217,12 +207,8 @@ export function CampaignHub() {
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p
-            className={`text-[11px] font-medium uppercase tracking-wide ${
-              ended ? "text-zinc-400" : "text-rose-300/80"
-            }`}
-          >
-            {ended ? "Season ended · references unlocked" : "Live season"}
+          <p className="text-[11px] font-medium uppercase tracking-wide text-rose-300/80">
+            Live season
           </p>
           <h2 className="mt-1 text-2xl font-semibold text-white">{season.title}</h2>
           <p className="mt-1 text-xs text-zinc-500">
@@ -298,13 +284,6 @@ export function CampaignHub() {
         </div>
       </div>
 
-      {ended ? (
-        <p className="mb-3 rounded-xl border border-white/10 bg-zinc-900/40 px-3 py-2 text-xs text-zinc-400">
-          Competitive play is frozen. Reference designs are revealed below when
-          the API unlocks them after season end.
-        </p>
-      ) : null}
-
       <h3 className="mb-3 text-sm font-semibold text-zinc-200">
         Season prompts ({prompts.length})
       </h3>
@@ -322,90 +301,61 @@ export function CampaignHub() {
               0
             );
             const exhausted = used >= maxAttempts;
-            const playLocked = ended || exhausted;
             const startedAt = sessionMap.get(p.id);
             const bestDuration = attempts
               .map((a) => a.durationMs)
               .filter((d): d is number => d != null && d >= 0)
               .sort((a, b) => a - b)[0];
-            const hasReference =
-              p.referenceDesign != null && p.referenceDesign !== undefined;
 
             return (
               <li key={p.id}>
-                <div
-                  className={`rounded-xl border px-3 py-3 ${
-                    playLocked
-                      ? "border-white/5 bg-zinc-950/40"
+                <Link
+                  href={exhausted ? "#" : `/campaign/play/${p.id}`}
+                  aria-disabled={exhausted}
+                  onClick={(e) => {
+                    if (exhausted) e.preventDefault();
+                  }}
+                  className={`flex items-start justify-between gap-3 rounded-xl border px-3 py-3 transition ${
+                    exhausted
+                      ? "cursor-not-allowed border-white/5 bg-zinc-950/40 opacity-70"
                       : "border-white/10 bg-zinc-950/40 hover:border-rose-500/40 hover:bg-zinc-900/60"
                   }`}
                 >
-                  {playLocked ? (
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Lock className="h-4 w-4 shrink-0 text-zinc-600" />
-                          <span className="truncate text-sm font-medium text-zinc-100">
-                            {title}
-                          </span>
-                          <DiffBadge difficulty={p.difficulty} />
-                        </div>
-                        <p className="mt-1 pl-6 text-[11px] text-zinc-600">
-                          {ended
-                            ? hasReference
-                              ? "Reference design unlocked"
-                              : "Season ended · reference pending"
-                            : `${used}/${maxAttempts} attempts`}
-                          {!ended && startedAt ? " · timer running" : ""}
-                        </p>
-                        {ended && hasReference ? (
-                          <p className="mt-2 pl-6 text-[11px] text-emerald-400/90">
-                            Reference design included in API response (study
-                            mode).
-                          </p>
-                        ) : null}
-                      </div>
-                      <div className="flex shrink-0 flex-col items-end gap-1 text-[11px] text-zinc-500">
-                        {bestStars > 0 ? <Stars n={bestStars} /> : null}
-                        <span className="text-zinc-600">
-                          {ended ? "Frozen" : "Max attempts"}
-                        </span>
-                      </div>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {exhausted ? (
+                        <Lock className="h-4 w-4 shrink-0 text-zinc-600" />
+                      ) : (
+                        <Sparkles className="h-4 w-4 shrink-0 text-rose-400" />
+                      )}
+                      <span className="truncate text-sm font-medium text-zinc-100">
+                        {title}
+                      </span>
+                      <DiffBadge difficulty={p.difficulty} />
                     </div>
-                  ) : (
-                    <Link
-                      href={`/campaign/play/${p.id}`}
-                      className="flex items-start justify-between gap-3"
-                    >
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Sparkles className="h-4 w-4 shrink-0 text-rose-400" />
-                          <span className="truncate text-sm font-medium text-zinc-100">
-                            {title}
-                          </span>
-                          <DiffBadge difficulty={p.difficulty} />
-                        </div>
-                        <p className="mt-1 pl-6 text-[11px] text-zinc-600">
-                          {used}/{maxAttempts} attempts
-                          {startedAt ? " · timer running" : ""}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 flex-col items-end gap-1 text-[11px] text-zinc-500">
-                        {bestStars > 0 ? <Stars n={bestStars} /> : null}
-                        {bestDuration != null ? (
-                          <span className="inline-flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatDurationMs(bestDuration)}
-                          </span>
-                        ) : null}
-                        <span className="inline-flex items-center gap-0.5 text-rose-300">
-                          Play
-                          <ArrowRight className="h-3 w-3" />
-                        </span>
-                      </div>
-                    </Link>
-                  )}
-                </div>
+                    <p className="mt-1 pl-6 text-[11px] text-zinc-600">
+                      {used}/{maxAttempts} attempts
+                      {startedAt ? " · timer running" : ""}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1 text-[11px] text-zinc-500">
+                    {bestStars > 0 ? <Stars n={bestStars} /> : null}
+                    {bestDuration != null ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatDurationMs(bestDuration)}
+                      </span>
+                    ) : null}
+                    {!exhausted ? (
+                      <span className="inline-flex items-center gap-0.5 text-rose-300">
+                        Play
+                        <ArrowRight className="h-3 w-3" />
+                      </span>
+                    ) : (
+                      <span className="text-zinc-600">Max attempts</span>
+                    )}
+                  </div>
+                </Link>
               </li>
             );
           })}

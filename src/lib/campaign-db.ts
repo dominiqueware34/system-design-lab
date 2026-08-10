@@ -3,9 +3,9 @@
  * Prefer service role for writes and public reads.
  * Never return reference_design unless season is effectively ended.
  *
- * Status lifecycle persistence (live → ended) is NOT done here.
- * See supabase migration `campaign_expire_seasons` + operator schedule —
- * app code only evaluates timestamps for freeze / reference reveal.
+ * Status lifecycle persistence (live → ended) is NOT done in the Next app.
+ * See docs/specs/background-jobs.md (Cron → Edge Function). Request paths
+ * only evaluate timestamps for freeze / reference reveal.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -88,7 +88,7 @@ export async function fetchSeasonById(
 
 /**
  * Current competitive season: effectively live only (timestamps).
- * Read-only — does not flip DB status; that is the Supabase expire job.
+ * Read-only — does not flip DB status (background jobs later).
  */
 export async function fetchCurrentSeason(
   admin: SupabaseClient,
@@ -104,28 +104,6 @@ export async function fetchCurrentSeason(
   const rows = (liveRows ?? []) as CampaignSeasonRow[];
   const open = rows.filter((s) => isSeasonOpenForPlay(s, nowMs));
   return open[0] ?? null;
-}
-
-/**
- * Most recently effectively-ended season (DB `ended`, or live past ends_at
- * before the expire job has run). Read-only.
- */
-export async function fetchMostRecentEndedSeason(
-  admin: SupabaseClient,
-  nowMs: number = Date.now()
-): Promise<CampaignSeasonRow | null> {
-  const { data, error } = await admin
-    .from("campaign_seasons")
-    .select("*")
-    .in("status", ["ended", "live"])
-    .order("ends_at", { ascending: false, nullsFirst: false })
-    .limit(20);
-  if (error) throw error;
-  const rows = (data ?? []) as CampaignSeasonRow[];
-  const ended = rows.filter(
-    (s) => effectiveSeasonStatus(s, nowMs) === "ended"
-  );
-  return ended[0] ?? null;
 }
 
 /**
