@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { User } from "@supabase/supabase-js";
 import {
-  ArrowRight,
   Loader2,
   Trophy,
   Timer,
@@ -14,11 +13,11 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { signInWithGoogle } from "@/lib/auth-client";
+import { CampaignHub } from "@/components/campaign/CampaignHub";
 
 /**
- * Competitive Campaign shell.
- * Guests: pitch + Google CTA. Signed-in: season placeholder until Artifact 6.
- * Solo multi-problem levels live at `/solo` — not here.
+ * Competitive Campaign hub (Artifact 6).
+ * Guests: pitch + Google CTA. Signed-in: live season hub (timer, N/20, play, LB).
  */
 export default function CampaignPage() {
   const envConfigured = hasSupabaseEnv();
@@ -52,7 +51,11 @@ export default function CampaignPage() {
 
   const handleSignIn = async () => {
     setBusy(true);
-    const { error } = await signInWithGoogle({ next: "/campaign" });
+    const next =
+      typeof window !== "undefined"
+        ? new URLSearchParams(window.location.search).get("next") || "/campaign"
+        : "/campaign";
+    const { error } = await signInWithGoogle({ next });
     if (error) {
       console.error("[campaign] signIn", error);
       setBusy(false);
@@ -63,7 +66,7 @@ export default function CampaignPage() {
     <div className="min-h-dvh bg-zinc-950 text-zinc-100">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(244,63,94,0.12),_transparent_50%),radial-gradient(ellipse_at_bottom_right,_rgba(245,158,11,0.08),_transparent_40%)]" />
 
-      <div className="relative mx-auto max-w-3xl px-6 pb-20 pt-12">
+      <div className="relative mx-auto max-w-5xl px-6 pb-20 pt-12">
         <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-rose-500/25 bg-rose-500/10 px-3 py-1 text-xs font-medium text-rose-300">
           <Trophy className="h-3.5 w-3.5" />
           Campaign · competitive seasons
@@ -83,34 +86,36 @@ export default function CampaignPage() {
           ).
         </p>
 
-        <div className="mt-8 grid gap-3 sm:grid-cols-3">
-          {[
-            {
-              icon: Timer,
-              title: "3-day seasons",
-              body: "Time-boxed shared prompts. Timer is sticky and private — not on the public board.",
-            },
-            {
-              icon: Users,
-              title: "Leaderboard",
-              body: "Rank by season score. Max 3 attempts per prompt. References hidden until end.",
-            },
-            {
-              icon: Lock,
-              title: "Sign-in required",
-              body: "Google via Supabase for durable identity and leaderboard integrity.",
-            },
-          ].map(({ icon: Icon, title, body }) => (
-            <div
-              key={title}
-              className="rounded-xl border border-white/10 bg-zinc-900/50 p-4"
-            >
-              <Icon className="mb-2 h-5 w-5 text-rose-400" />
-              <p className="text-sm font-medium text-zinc-100">{title}</p>
-              <p className="mt-1 text-xs leading-relaxed text-zinc-500">{body}</p>
-            </div>
-          ))}
-        </div>
+        {!user || !ready ? (
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            {[
+              {
+                icon: Timer,
+                title: "3-day seasons",
+                body: "Time-boxed shared prompts. Timer is sticky and private — not on the public board.",
+              },
+              {
+                icon: Users,
+                title: "Leaderboard",
+                body: "Rank by season score. Max 3 attempts per prompt. References hidden until end.",
+              },
+              {
+                icon: Lock,
+                title: "Sign-in required",
+                body: "Google via Supabase for durable identity and leaderboard integrity.",
+              },
+            ].map(({ icon: Icon, title, body }) => (
+              <div
+                key={title}
+                className="rounded-xl border border-white/10 bg-zinc-900/50 p-4"
+              >
+                <Icon className="mb-2 h-5 w-5 text-rose-400" />
+                <p className="text-sm font-medium text-zinc-100">{title}</p>
+                <p className="mt-1 text-xs leading-relaxed text-zinc-500">{body}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
 
         <div className="mt-10 rounded-2xl border border-white/10 bg-zinc-900/60 p-6">
           {!ready ? (
@@ -119,29 +124,7 @@ export default function CampaignPage() {
               Loading…
             </div>
           ) : user ? (
-            <div>
-              <p className="text-sm font-medium text-zinc-100">You&apos;re signed in</p>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                Competitive seasons, leaderboard, and submit flow ship in later artifacts.
-                For now you can keep playing personal levels in Solo Mode or free problems
-                in Practice.
-              </p>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <Link
-                  href="/solo"
-                  className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-500"
-                >
-                  Play Solo Mode
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  href="/practice"
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2.5 text-sm font-medium text-zinc-300 hover:bg-white/5"
-                >
-                  Free practice
-                </Link>
-              </div>
-            </div>
+            <CampaignHub />
           ) : (
             <div>
               <p className="text-sm font-medium text-zinc-100">
@@ -149,7 +132,7 @@ export default function CampaignPage() {
               </p>
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">
                 {hasSupabaseEnv()
-                  ? "Continue with Google to lock your identity for the leaderboard. Seasons open when the competitive stack ships."
+                  ? "Continue with Google to lock your identity for the leaderboard and open season play."
                   : "Supabase auth is not configured in this environment. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY to enable sign-in."}
               </p>
               {hasSupabaseEnv() ? (
@@ -174,9 +157,26 @@ export default function CampaignPage() {
                 </Link>{" "}
                 is open to guests.
               </p>
+              <p className="mt-3 text-xs text-zinc-600">
+                Public{" "}
+                <Link
+                  href="/campaign/leaderboard"
+                  className="text-zinc-400 underline-offset-2 hover:underline"
+                >
+                  leaderboard
+                </Link>{" "}
+                is viewable without sign-in.
+              </p>
             </div>
           )}
         </div>
+
+        {user && ready ? (
+          <p className="mt-6 text-center text-xs text-zinc-600">
+            Guests cannot open{" "}
+            <code className="text-zinc-500">/campaign/play/*</code> — sign-in required.
+          </p>
+        ) : null}
       </div>
     </div>
   );

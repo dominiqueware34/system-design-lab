@@ -10,12 +10,22 @@ import {
   X,
 } from "lucide-react";
 
+export type CampaignEvalMeta = {
+  stars: number | null;
+  attemptsRemaining: number;
+  maxAttempts: number;
+  attemptsUsed: number;
+  seasonScore: number | null;
+};
+
 interface EvaluationPanelProps {
   open: boolean;
   loading: boolean;
   error: string | null;
   evaluation: EvaluationResult | null;
   activeFollowUp: FollowUpChallenge | null;
+  /** Competitive campaign submit extras (stars / attempts). Hides follow-up UX. */
+  campaignMeta?: CampaignEvalMeta | null;
   onClose: () => void;
   onSubmitFix: () => void;
   onDismissFollowUp: () => void;
@@ -43,18 +53,33 @@ export function EvaluationPanel({
   error,
   evaluation,
   activeFollowUp,
+  campaignMeta = null,
   onClose,
   onSubmitFix,
   onDismissFollowUp,
 }: EvaluationPanelProps) {
   if (!open) return null;
 
+  const isCampaign = !!campaignMeta;
+  const showDimensions =
+    !isCampaign &&
+    evaluation &&
+    (evaluation.dimensions.latency.score > 0 ||
+      evaluation.dimensions.reliability.score > 0 ||
+      evaluation.dimensions.scale.score > 0 ||
+      evaluation.dimensions.correctness.score > 0 ||
+      evaluation.dimensions.evaluation.score > 0);
+
   return (
     <div className="absolute bottom-3 right-3 z-20 w-[min(420px,calc(100%-1.5rem))] overflow-hidden rounded-xl border border-white/10 bg-zinc-950/95 shadow-2xl backdrop-blur-md">
       <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-violet-400" />
-          <h2 className="text-sm font-semibold text-zinc-100">AI Interviewer</h2>
+          <Sparkles
+            className={`h-4 w-4 ${isCampaign ? "text-rose-400" : "text-violet-400"}`}
+          />
+          <h2 className="text-sm font-semibold text-zinc-100">
+            {isCampaign ? "Campaign score" : "AI Interviewer"}
+          </h2>
           <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-zinc-500">
             SpaceXAI · grok-4.5
           </span>
@@ -88,13 +113,19 @@ export function EvaluationPanel({
           <>
             <div className="flex items-end justify-between">
               <div>
-                <p className="text-[11px] uppercase tracking-wide text-zinc-500">Score</p>
+                <p className="text-[11px] uppercase tracking-wide text-zinc-500">
+                  {isCampaign ? "AI score" : "Score"}
+                </p>
                 <p className="text-3xl font-bold tabular-nums text-zinc-50">
                   {evaluation.score}
                   <span className="text-base font-normal text-zinc-500">/100</span>
                 </p>
               </div>
-              {evaluation.isComplete ? (
+              {isCampaign && campaignMeta.stars != null ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] font-medium text-amber-300">
+                  {campaignMeta.stars}★ stars
+                </span>
+              ) : evaluation.isComplete ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-300">
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   Complete
@@ -107,18 +138,42 @@ export function EvaluationPanel({
               )}
             </div>
 
+            {isCampaign ? (
+              <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-400">
+                Attempts{" "}
+                <strong className="text-zinc-200">
+                  {campaignMeta.attemptsUsed}/{campaignMeta.maxAttempts}
+                </strong>
+                {" · "}
+                {campaignMeta.attemptsRemaining > 0
+                  ? `${campaignMeta.attemptsRemaining} remaining`
+                  : "none remaining"}
+                {campaignMeta.seasonScore != null ? (
+                  <>
+                    {" · "}
+                    season score{" "}
+                    <strong className="text-zinc-200">
+                      {Math.round(campaignMeta.seasonScore)}
+                    </strong>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+
             <p className="text-sm leading-relaxed text-zinc-300">{evaluation.summary}</p>
 
-            <div className="grid grid-cols-2 gap-3">
-              <ScoreBar label="Latency" score={evaluation.dimensions.latency.score} />
-              <ScoreBar label="Reliability" score={evaluation.dimensions.reliability.score} />
-              <ScoreBar label="Scale" score={evaluation.dimensions.scale.score} />
-              <ScoreBar label="Correctness" score={evaluation.dimensions.correctness.score} />
-              <ScoreBar
-                label="Evals / measurement"
-                score={evaluation.dimensions.evaluation.score}
-              />
-            </div>
+            {showDimensions ? (
+              <div className="grid grid-cols-2 gap-3">
+                <ScoreBar label="Latency" score={evaluation.dimensions.latency.score} />
+                <ScoreBar label="Reliability" score={evaluation.dimensions.reliability.score} />
+                <ScoreBar label="Scale" score={evaluation.dimensions.scale.score} />
+                <ScoreBar label="Correctness" score={evaluation.dimensions.correctness.score} />
+                <ScoreBar
+                  label="Evals / measurement"
+                  score={evaluation.dimensions.evaluation.score}
+                />
+              </div>
+            ) : null}
 
             {evaluation.strengths.length > 0 ? (
               <section>
@@ -142,7 +197,28 @@ export function EvaluationPanel({
               </section>
             ) : null}
 
-            {(activeFollowUp || evaluation.followUp) && !evaluation.isComplete ? (
+            {isCampaign && campaignMeta.attemptsRemaining > 0 ? (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={onSubmitFix}
+                  className="flex-1 rounded-lg bg-rose-600 px-3 py-2 text-sm font-medium text-white hover:bg-rose-500"
+                >
+                  Submit another attempt
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="rounded-lg border border-white/10 px-3 py-2 text-sm text-zinc-400 hover:bg-white/5"
+                >
+                  Close
+                </button>
+              </div>
+            ) : null}
+
+            {!isCampaign &&
+            (activeFollowUp || evaluation.followUp) &&
+            !evaluation.isComplete ? (
               <section className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-3">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-400">
                   Interviewer challenge

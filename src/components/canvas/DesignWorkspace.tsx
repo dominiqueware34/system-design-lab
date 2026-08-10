@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Background,
   BackgroundVariant,
@@ -20,7 +20,16 @@ import {
 import "@xyflow/react/dist/style.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Eraser, Loader2, Send, Swords, Waypoints } from "lucide-react";
+import {
+  ArrowLeft,
+  Eraser,
+  Loader2,
+  Send,
+  Star,
+  Swords,
+  Timer,
+  Waypoints,
+} from "lucide-react";
 import { ComponentPalette } from "./ComponentPalette";
 import { AttributesPanel } from "./AttributesPanel";
 import { ProblemPanel } from "./ProblemPanel";
@@ -40,6 +49,10 @@ import {
   getSoloLevelProblem,
   markSoloProblemComplete,
 } from "@/lib/solo-levels";
+import {
+  formatDurationMs,
+  submitCampaignDesign,
+} from "@/lib/campaign-client";
 import type {
   AttributeValue,
   CampaignLevelNode,
@@ -54,18 +67,48 @@ import type {
 
 const nodeTypes = { design: DesignNode };
 
+export type CampaignPlayMeta = {
+  seasonId: string;
+  startedAt: string;
+  attemptsUsed: number;
+  maxAttempts: number;
+  difficulty?: string;
+};
+
 interface DesignWorkspaceProps {
   problem: DesignProblem;
   /** Multi-problem Solo Mode level id (e.g. solo-l1). No wrenches. */
   soloLevelId?: string;
   /** When set, run legacy map flow with AI wrenches */
   campaignLevelId?: string;
+  /**
+   * Competitive Campaign season mode (Artifact 6).
+   * Submit goes only to POST /api/campaign/submit — no wrenches.
+   */
+  mode?: "campaign";
+  /** Season prompt UUID when mode === "campaign". */
+  seasonPromptId?: string;
+  campaignPlay?: CampaignPlayMeta;
+}
+
+function emptyDimensions(): EvaluationResult["dimensions"] {
+  const blank = { score: 0, feedback: "" };
+  return {
+    latency: blank,
+    reliability: blank,
+    scale: blank,
+    correctness: blank,
+    evaluation: blank,
+  };
 }
 
 function DesignWorkspaceInner({
   problem,
   soloLevelId,
   campaignLevelId,
+  mode,
+  seasonPromptId,
+  campaignPlay,
 }: DesignWorkspaceProps) {
   const router = useRouter();
   const soloLevel: SoloLevel | undefined = soloLevelId
@@ -76,11 +119,14 @@ function DesignWorkspaceInner({
     : undefined;
   const isSolo = !!soloLevel && !!soloSlot;
 
-  const campaignLevel: CampaignLevelNode | undefined = campaignLevelId
-    ? getCampaignLevel(campaignLevelId)
-    : undefined;
-  /** Legacy wrench map only — never used for multi-problem Solo. */
-  const isCampaign = !!campaignLevel && !isSolo;
+  /** Competitive season play — exclusive over solo/legacy. */
+  const isSeason =
+    mode === "campaign" && typeof seasonPromptId === "string" && !!seasonPromptId;
+
+  const campaignLevel: CampaignLevelNode | undefined =
+    !isSeason && campaignLevelId ? getCampaignLevel(campaignLevelId) : undefined;
+  /** Legacy wrench map only — never used for Solo or season Campaign. */
+  const isCampaign = !!campaignLevel && !isSolo && !isSeason;
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const soloStartedAt = useRef<number>(
@@ -100,6 +146,20 @@ function DesignWorkspaceInner({
   const [history, setHistory] = useState<Array<{ role: string; content: string }>>([]);
   const [soloPassed, setSoloPassed] = useState(false);
 
+  // Competitive Campaign season state (no wrenches)
+  const [attemptsUsed, setAttemptsUsed] = useState(
+    campaignPlay?.attemptsUsed ?? 0
+  );
+  const [attemptsRemaining, setAttemptsRemaining] = useState(() => {
+    const max = campaignPlay?.maxAttempts ?? 3;
+    const used = campaignPlay?.attemptsUsed ?? 0;
+    return Math.max(0, max - used);
+  });
+  const [lastCampaignStars, setLastCampaignStars] = useState<number | null>(null);
+  const [seasonScoreDisplay, setSeasonScoreDisplay] = useState<number | null>(null);
+  const [elapsedLabel, setElapsedLabel] = useState("—");
+  const maxAttempts = campaignPlay?.maxAttempts ?? 3;
+
   // Campaign chaos state (legacy map)
   const [phase, setPhase] = useState<CampaignPhase>("design");
   const [wrenchOpen, setWrenchOpen] = useState(false);
@@ -117,6 +177,19 @@ function DesignWorkspaceInner({
   const passScore = isSolo
     ? (soloSlot?.passScore ?? 60)
     : (campaignLevel?.passScore ?? 60);
+
+  // Sticky private timer for season campaign play
+  useEffect(() => {
+    if (!isSeason || !campaignPlay?.startedAt) return;
+    const startedMs = Date.parse(campaignPlay.startedAt);
+    if (!Number.isFinite(startedMs)) return;
+    const tick = () => {
+      setElapsedLabel(formatDurationMs(Math.max(0, Date.now() - startedMs)));
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [isSeason, campaignPlay?.startedAt]);
 
   const flowScenarios = useMemo(
     () => buildHeuristicScenarios(nodes, edges),
@@ -226,9 +299,70 @@ function DesignWorkspaceInner({
     setSelectedId(null);
   }, [setNodes, setEdges]);
 
+  /**
+   * Competitive Campaign submit — ONLY /api/campaign/submit.
+   * No evaluate API, no wrenches. Server-authoritative score; max 3 attempts.
+   */
+  const submitSeasonCampaign = useCallback(async () => {
+    if (!isSeason || !seasonPromptId) return;
+    if (attemptsRemaining <= 0) {
+      setEvalOpen(true);
+      setEvalError("Maximum attempts reached for this prompt.");
+      return;
+    }
+    if (nodes.length === 0) {
+      setEvalOpen(true);
+      setEvalError("Add at least one component to the canvas before submitting.");
+      return;
+    }
+
+    const design = serializeDesign(nodes, edges);
+    setEvalOpen(true);
+    setEvalLoading(true);
+    setEvalError(null);
+    setActiveFollowUp(null);
+
+    try {
+      const data = await submitCampaignDesign(seasonPromptId, design);
+      const result: EvaluationResult = {
+        score: data.evaluation.score,
+        summary: data.evaluation.summary,
+        strengths: data.evaluation.strengths,
+        gaps: data.evaluation.gaps,
+        isComplete: data.evaluation.isComplete,
+        dimensions: emptyDimensions(),
+        followUp: null,
+      };
+      setEvaluation(result);
+      setLastScore(result.score);
+      setLastCampaignStars(data.attempt.stars);
+      setAttemptsUsed(data.attempt.attemptNumber);
+      setAttemptsRemaining(data.attemptsRemaining);
+      setSeasonScoreDisplay(data.season.seasonScore);
+      setHistory((h) => [
+        ...h,
+        { role: "user", content: "Submitted campaign design" },
+        {
+          role: "assistant",
+          content: `Stars ${data.attempt.stars}/5 · score ${result.score}. ${result.summary}`,
+        },
+      ]);
+    } catch (err) {
+      setEvalError(err instanceof Error ? err.message : "Campaign submit failed");
+    } finally {
+      setEvalLoading(false);
+    }
+  }, [isSeason, seasonPromptId, attemptsRemaining, nodes, edges]);
+
   /** Free-practice + Solo Mode submit (evaluate API; no wrenches). */
   const submitDesign = useCallback(
     async (isFollowUpFix: boolean) => {
+      // Season mode must never hit /api/evaluate
+      if (isSeason) {
+        void submitSeasonCampaign();
+        return;
+      }
+
       if (nodes.length === 0) {
         setEvalOpen(true);
         setEvalError("Add at least one component to the canvas before submitting.");
@@ -299,7 +433,18 @@ function DesignWorkspaceInner({
         setEvalLoading(false);
       }
     },
-    [nodes, edges, problem, activeFollowUp, history, isSolo, soloLevelId, passScore]
+    [
+      nodes,
+      edges,
+      problem,
+      activeFollowUp,
+      history,
+      isSolo,
+      soloLevelId,
+      passScore,
+      isSeason,
+      submitSeasonCampaign,
+    ]
   );
 
   /** Campaign: deploy design → AI throws wrench */
@@ -464,6 +609,14 @@ function DesignWorkspaceInner({
   ]);
 
   const primaryAction = () => {
+    if (isSeason) {
+      if (attemptsRemaining <= 0) {
+        router.push("/campaign");
+        return;
+      }
+      void submitSeasonCampaign();
+      return;
+    }
     if (isSolo) {
       if (soloPassed) {
         router.push("/solo");
@@ -488,6 +641,10 @@ function DesignWorkspaceInner({
   };
 
   const primaryLabel = (() => {
+    if (isSeason) {
+      if (attemptsRemaining <= 0) return "Back to Campaign";
+      return attemptsUsed > 0 ? "Submit attempt" : "Submit design";
+    }
     if (isSolo) {
       if (soloPassed) return "Back to Solo";
       return activeFollowUp ? "Submit fix" : "Submit design";
@@ -520,7 +677,8 @@ if (flowOpen) {
                   : problem.title}
               </p>
               <p className="text-[11px] text-sky-400">
-                Data flow playback{isSolo ? " · Solo" : ""}
+                Data flow playback
+                {isSolo ? " · Solo" : isSeason ? " · Campaign" : ""}
               </p>
             </div>
           </div>
@@ -545,11 +703,23 @@ if (flowOpen) {
       <header className="flex h-14 shrink-0 items-center justify-between border-b border-white/10 px-4">
         <div className="flex items-center gap-3">
           <Link
-            href={isSolo || isCampaign ? "/solo" : "/practice"}
+            href={
+              isSeason
+                ? "/campaign"
+                : isSolo || isCampaign
+                  ? "/solo"
+                  : "/practice"
+            }
             className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-zinc-400 hover:bg-white/5 hover:text-zinc-100"
           >
             <ArrowLeft className="h-4 w-4" />
-            {isSolo ? "Solo" : isCampaign ? "Map" : "Problems"}
+            {isSeason
+              ? "Campaign"
+              : isSolo
+                ? "Solo"
+                : isCampaign
+                  ? "Map"
+                  : "Problems"}
           </Link>
           <div className="h-4 w-px bg-white/10" />
           <div>
@@ -559,17 +729,26 @@ if (flowOpen) {
                 : problem.title}
             </p>
             <p className="text-[11px] capitalize text-zinc-500">
-              {isSolo
-                ? `${soloLevel?.title ?? "Solo"} · pass ≥ ${passScore}${
-                    soloPassed ? " · cleared" : ""
+              {isSeason
+                ? `Season · ${campaignPlay?.difficulty ?? problem.difficulty} · ${attemptsUsed}/${maxAttempts} attempts${
+                    lastCampaignStars != null ? ` · ${lastCampaignStars}★` : ""
                   }`
-                : isCampaign
-                  ? `Legacy map · W${campaignLevel?.world} · ${phase}${
-                      levelPassed ? " · cleared" : ""
+                : isSolo
+                  ? `${soloLevel?.title ?? "Solo"} · pass ≥ ${passScore}${
+                      soloPassed ? " · cleared" : ""
                     }`
-                  : problem.difficulty}
+                  : isCampaign
+                    ? `Legacy map · W${campaignLevel?.world} · ${phase}${
+                        levelPassed ? " · cleared" : ""
+                      }`
+                    : problem.difficulty}
             </p>
           </div>
+          {isSeason ? (
+            <span className="hidden items-center gap-1 rounded-full border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[10px] font-medium text-rose-300 sm:inline-flex">
+              Campaign · no wrenches
+            </span>
+          ) : null}
           {isSolo ? (
             <span className="hidden items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-300 sm:inline-flex">
               Solo · no wrenches
@@ -583,10 +762,30 @@ if (flowOpen) {
           ) : null}
         </div>
         <div className="flex items-center gap-2">
-          <span className="hidden text-xs text-zinc-600 sm:inline">
-            {nodes.length} components · {edges.length} links
-            {lastScore > 0 ? ` · last ${lastScore}` : ""}
-          </span>
+          {isSeason ? (
+            <span className="hidden items-center gap-1.5 text-xs text-zinc-500 sm:inline-flex">
+              <Timer className="h-3.5 w-3.5 text-rose-400" />
+              <span className="tabular-nums text-zinc-300">{elapsedLabel}</span>
+              <span className="text-zinc-600">private</span>
+              {lastCampaignStars != null ? (
+                <span className="ml-1 inline-flex items-center gap-0.5 text-amber-300">
+                  <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                  {lastCampaignStars}
+                </span>
+              ) : null}
+              <span className="text-zinc-600">
+                · {attemptsRemaining} left
+                {seasonScoreDisplay != null
+                  ? ` · season ${Math.round(seasonScoreDisplay)}`
+                  : ""}
+              </span>
+            </span>
+          ) : (
+            <span className="hidden text-xs text-zinc-600 sm:inline">
+              {nodes.length} components · {edges.length} links
+              {lastScore > 0 ? ` · last ${lastScore}` : ""}
+            </span>
+          )}
           {canPlayFlow ? (
             <button
               type="button"
@@ -611,7 +810,7 @@ if (flowOpen) {
             disabled={evalLoading || wrenchLoading}
             onClick={primaryAction}
             className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60 ${
-              isCampaign
+              isSeason || isCampaign
                 ? "bg-rose-600 hover:bg-rose-500"
                 : isSolo
                   ? "bg-emerald-600 hover:bg-emerald-500"
@@ -705,6 +904,36 @@ if (flowOpen) {
             />
           ) : (
             <>
+              {isSeason && attemptsRemaining <= 0 && !evalOpen ? (
+                <div className="absolute bottom-3 left-1/2 z-10 w-[min(480px,calc(100%-2rem))] -translate-x-1/2 rounded-xl border border-rose-500/40 bg-rose-500/15 px-4 py-3 text-center shadow-xl backdrop-blur">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-300">
+                    Max attempts used
+                    {lastCampaignStars != null
+                      ? ` · best ${lastCampaignStars}★`
+                      : ""}
+                  </p>
+                  <p className="mt-1 text-sm text-zinc-100">
+                    Season score updates from your best attempt. Check the
+                    leaderboard or try another prompt.
+                  </p>
+                  <div className="mt-2 flex justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => router.push("/campaign")}
+                      className="text-xs font-medium text-rose-200 underline"
+                    >
+                      Campaign hub
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => router.push("/campaign/leaderboard")}
+                      className="text-xs font-medium text-rose-200 underline"
+                    >
+                      Leaderboard
+                    </button>
+                  </div>
+                </div>
+              ) : null}
               {isSolo && soloPassed && !evalOpen ? (
                 <div className="absolute bottom-3 left-1/2 z-10 w-[min(480px,calc(100%-2rem))] -translate-x-1/2 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-4 py-3 text-center shadow-xl backdrop-blur">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-300">
@@ -722,7 +951,7 @@ if (flowOpen) {
                   </button>
                 </div>
               ) : null}
-              {activeFollowUp && !evalOpen ? (
+              {activeFollowUp && !evalOpen && !isSeason ? (
                 <div className="absolute bottom-3 left-1/2 z-10 w-[min(480px,calc(100%-2rem))] -translate-x-1/2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-center shadow-xl backdrop-blur">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-400">
                     Active challenge
@@ -735,9 +964,22 @@ if (flowOpen) {
                 loading={evalLoading}
                 error={evalError}
                 evaluation={evaluation}
-                activeFollowUp={activeFollowUp}
+                activeFollowUp={isSeason ? null : activeFollowUp}
+                campaignMeta={
+                  isSeason
+                    ? {
+                        stars: lastCampaignStars,
+                        attemptsRemaining,
+                        maxAttempts,
+                        attemptsUsed,
+                        seasonScore: seasonScoreDisplay,
+                      }
+                    : null
+                }
                 onClose={() => setEvalOpen(false)}
-                onSubmitFix={() => submitDesign(true)}
+                onSubmitFix={() =>
+                  isSeason ? void submitSeasonCampaign() : submitDesign(true)
+                }
                 onDismissFollowUp={() => {
                   setActiveFollowUp(null);
                   setEvalOpen(false);
@@ -763,6 +1005,9 @@ export function DesignWorkspace({
   problem,
   soloLevelId,
   campaignLevelId,
+  mode,
+  seasonPromptId,
+  campaignPlay,
 }: DesignWorkspaceProps) {
   return (
     <ReactFlowProvider>
@@ -770,6 +1015,9 @@ export function DesignWorkspace({
         problem={problem}
         soloLevelId={soloLevelId}
         campaignLevelId={campaignLevelId}
+        mode={mode}
+        seasonPromptId={seasonPromptId}
+        campaignPlay={campaignPlay}
       />
     </ReactFlowProvider>
   );

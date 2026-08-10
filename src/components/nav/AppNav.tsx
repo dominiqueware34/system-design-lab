@@ -33,7 +33,12 @@ const TABS = [
 export function AppNav() {
   const pathname = usePathname() ?? "/";
 
-  if (pathname.startsWith("/design") || pathname.startsWith("/auth")) {
+  // Full-screen canvas: design workspace + campaign season play
+  if (
+    pathname.startsWith("/design") ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/campaign/play")
+  ) {
     return null;
   }
 

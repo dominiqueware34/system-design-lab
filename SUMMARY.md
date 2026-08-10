@@ -1,66 +1,50 @@
-# Artifact 5 — Campaign submit API + scoring (#17)
+# Artifact 6 — Campaign season UI + leaderboard (#12)
 
-**Branch:** `feat/campaign-submit-api`  
-**Status:** Implemented
+**Branch:** `feat/campaign-season-ui`
 
-## Work breakdown
+## Done
 
-- [x] Claim BOARD/STATUS; branch `feat/campaign-submit-api`
-- [x] Pure module `src/lib/campaign-scoring.ts` + unit tests
-- [x] GET `/api/campaign/seasons/current` (any)
-- [x] GET `/api/campaign/seasons/:id/prompts` (auth; strip reference)
-- [x] POST `/api/campaign/prompts/:promptId/start` (auth; sticky started_at)
-- [x] POST `/api/campaign/submit` (auth; max 3; server-authoritative; private duration_ms)
-- [x] GET leaderboard (any, no times) + GET `.../me` (auth, private durations OK)
-- [x] Reject 4th attempt; client cannot forge score; open PR
+- [x] `/campaign` hub: guest pitch + Google; signed-in season hub (timer, N/20, play, LB + my stats)
+- [x] `/campaign/play/[promptId]`: auth gate (server + client), start session, canvas `mode: "campaign"`
+- [x] Submit only to `/api/campaign/submit`; stars + attempts left; **no wrenches**
+- [x] Guest cannot open play routes (redirect → `/campaign?signin=1`)
+- [x] `/campaign/leaderboard` — rank, name, season_score, stars, prompts (**no time column**)
+- [x] `/campaign/stats` — private times per prompt via `/me`
+- [x] `FEATURES.md` Campaign seasons MVP UI
+- [x] Commit + PR
 
-## Acceptance
+## Files changed (product)
 
-| Check | How |
+| Path | Role |
 | --- | --- |
-| Client cannot forge score | Submit ignores client score fields; server runs SpaceXAI evaluate → bands → points |
-| 4th attempt rejected | HTTP 409 when `priorCount >= max_attempts` (default 3) |
-| started_at sticky | `ensurePromptSession` insert-once; conflict re-selects; no UPDATE |
-| LB payload has no duration | `campaign_leaderboard` select + `sanitizeLeaderboardRow` + fixed JSON shape |
-| Unit tests for scoring | `src/lib/campaign-scoring.test.ts` via `npm test` |
-
-## Files
-
-- `src/lib/campaign-scoring.ts` + `.test.ts`
-- `src/lib/campaign-db.ts`, `src/lib/campaign-evaluate.ts`
-- `src/lib/supabase/admin.ts`
-- `src/app/api/campaign/seasons/current/route.ts`
-- `src/app/api/campaign/seasons/[id]/prompts/route.ts`
-- `src/app/api/campaign/seasons/[id]/leaderboard/route.ts`
-- `src/app/api/campaign/seasons/[id]/me/route.ts`
-- `src/app/api/campaign/prompts/[promptId]/start/route.ts`
-- `src/app/api/campaign/submit/route.ts`
-- `docs/brain/FEATURES.md`
+| `src/lib/campaign-client.ts` | Client API helpers + problem coerce |
+| `src/components/campaign/CampaignHub.tsx` | Signed-in season hub |
+| `src/components/campaign/CampaignPlayClient.tsx` | Play boot: start + workspace |
+| `src/components/campaign/CampaignLeaderboard.tsx` | Public LB UI |
+| `src/components/campaign/CampaignMyStats.tsx` | Private times |
+| `src/app/campaign/page.tsx` | Guest / signed-in shell |
+| `src/app/campaign/play/[promptId]/page.tsx` | Server auth gate |
+| `src/app/campaign/leaderboard/page.tsx` | LB route |
+| `src/app/campaign/stats/page.tsx` | Stats route (auth) |
+| `src/components/canvas/DesignWorkspace.tsx` | `mode: "campaign"` submit path |
+| `src/components/canvas/EvaluationPanel.tsx` | Campaign stars / attempts UI |
+| `src/components/nav/AppNav.tsx` | Hide nav on `/campaign/play` |
+| `docs/brain/FEATURES.md` | Ship Campaign seasons MVP UI |
+| `docs/brain/PRODUCT.md` | Campaign mode shipped note |
 
 ## How to test
 
-```bash
-npm test                          # scoring unit tests
-# With Supabase + SERVICE_ROLE + live season seeded:
-# GET  /api/campaign/seasons/current
-# GET  /api/campaign/seasons/:id/leaderboard
-# Auth:
-# GET  /api/campaign/seasons/:id/prompts
-# POST /api/campaign/prompts/:promptId/start
-# POST /api/campaign/submit  { "promptId": "...", "design": { "nodes": [], "edges": [] } }
-# GET  /api/campaign/seasons/:id/me
-# 4th submit → 409
-```
-
-Requires: migrations applied, `npm run seed:season` (then set season `status=live`), `SUPABASE_SERVICE_ROLE_KEY`, `XAI_API_KEY` for submit.
+1. Ensure migrations applied, season seeded and set **live**, `SUPABASE_SERVICE_ROLE_KEY` + `XAI_API_KEY` set.
+2. Guest: open `/campaign` → Google CTA; `/campaign/play/<id>` → redirect to hub; `/campaign/leaderboard` works without auth.
+3. Sign in → hub shows countdown, coverage N/20, prompt list.
+4. Play a prompt → sticky timer starts → submit design → stars + attempts left (≤3) → season score updates.
+5. `/campaign/leaderboard` → appear with score/stars/prompts; **no duration column**.
+6. `/campaign/stats` → private `durationMs` per attempt.
+7. Network tab on prompts/submit responses: no `reference_design` / `referenceDesign`.
 
 ## Leftover risks
 
-- Submit depends on live XAI evaluate (latency + cost); no offline mock score path.
-- Service role required for all campaign season routes (anon has no RLS grants).
-- No end-to-end integration tests against real Supabase in CI.
-- Season UI (#12) and hardening (#10) not in scope.
-
-## Deferred
-
-- None required for acceptance. Campaign season UI remains #12.
+- Needs a **live** season in DB (seed is draft by default — operator must promote).
+- Full E2E with real AI submit needs `XAI_API_KEY` and live Supabase.
+- Artifact 7 hardening (season end freeze, reference reveal) not in scope.
+- ESLint `react-hooks/set-state-in-effect` fires on data-fetch effects (same pattern as SoloHub).
