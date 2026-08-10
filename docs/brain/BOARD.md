@@ -28,16 +28,19 @@ SHIPPED (summary — full detail in FEATURES.md)
   [x] Artifact 4: Campaign seasons DB schema + RLS (PR #21 / #14)
   [x] Artifact 2: Solo multi-problem levels + progress + duration (PR #22 / #11)
   [x] Artifact 5: Campaign submit API + scoring (PR #23 / #17)
+  [x] Artifact 6: Campaign season UI + leaderboard (PR #24 / #12)
 
 IN FLIGHT
-  [~] Artifact 6: Campaign season UI + leaderboard
-      branch:   feat/campaign-season-ui
-      worktree: system-design-lab-season-ui
-      issue:    #12
-      next:     /campaign hub + play + LB + my stats; wire submit; auth gate
+  [~] Artifact 7 (reduced): Season freeze + post-season ref reveal
+      branch:   feat/campaign-season-end
+      worktree: system-design-lab (main tree / feature branch)
+      issue:    #10
+      next:     effective status from ends_at; freeze start/submit; reveal ref when ended
+      deferred: rate limits #25, next-season seed #26 (planning)
 
 PLANNED
-  [ ] Artifact 7: Campaign hardening                                    #10  depends: #12
+  [ ] Campaign rate limits / abuse protection                         #25  label:planning
+  [ ] Campaign operator next-season seed                              #26  label:planning
   note: Plan B PARKED
   note: scoring v1_correct_diff_cover (solo-vs-campaign.md)
 
@@ -50,8 +53,8 @@ BLOCKED
 ```
 PARALLEL STATUS
 ===============
-main                             system-design-lab              c8e3d5c  CURRENT   claims
-feat/campaign-season-ui          system-design-lab-season-ui    —        planned   #12
+main                             system-design-lab              f6c57cd  CURRENT   claims
+feat/campaign-season-end         —                              —        planned   #10
 STALE worktrees: auth-p0, map-p0, marketing — prune
 Open PRs: (none at claim)
 ```
