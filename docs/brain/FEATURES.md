@@ -1,6 +1,6 @@
 # Shipped Features (main)
 
-> Last verified: 2026-08-09 · Artifact 2 Solo multi-problem on `feat/solo-multi-problem` (#11)  
+> Last verified: 2026-08-10 · Artifact 5 Campaign submit API on `feat/campaign-submit-api` (#17)  
 > Rule: if it is not listed here, treat it as **NOT shipped** unless STATUS Active work names it in-flight.
 
 ## Product surfaces
@@ -23,7 +23,8 @@
 | Progress dual model | `/api/progress/solo`, `/api/progress/campaign`, `/api/progress/training`, `/api/progress/merge` | `src/lib/progress-sync.ts`, `src/lib/progress-merge.ts`, `src/lib/progress-db.ts`, migrations | localStorage **always** (`sdl-solo-progress-v1`, `sdl-campaign-progress-v1`, `sdl-training-progress-v1`) + Supabase when signed in; Solo merge-on-login |
 | Marketing / research | docs only | `docs/marketing/*`, `docs/market-research-viability.md` | Not runtime |
 | Campaign season prompt pack (offline) | fixture only (no UI) | `fixtures/campaign/season-prompts-v1.json`, `src/lib/catalog-schema.ts`, `src/lib/design-graph-validate.ts`, `src/lib/campaign-prompt-schema.ts`, `scripts/generate-season-prompts.ts` | Artifact 3: **20** pre-gen prompts + reference designs; operator docs `docs/specs/campaign-prompt-generation.md`. Not competitive season UI. |
-| Campaign seasons DB (schema) | migrations + seed only (no UI) | `supabase/migrations/20260809120000_profiles.sql`, `…20100_campaign_seasons_and_prompts.sql`, `…20200_campaign_play_tables.sql`, `scripts/seed-season.ts` | Artifact 4 (#14): `profiles`, `campaign_seasons`, `campaign_prompts` (+ public view), `campaign_prompt_sessions`, `campaign_attempts`, `campaign_season_scores`, `campaign_leaderboard`. RLS: no client writes to scores/attempts; `reference_design` column-revoked for JWT. Seed: `npm run seed:season`. **Not** live season play UI (Artifact 6) or submit API (Artifact 5). |
+| Campaign seasons DB (schema) | migrations + seed only (no UI) | `supabase/migrations/20260809120000_profiles.sql`, `…20100_campaign_seasons_and_prompts.sql`, `…20200_campaign_play_tables.sql`, `scripts/seed-season.ts` | Artifact 4 (#14): `profiles`, `campaign_seasons`, `campaign_prompts` (+ public view), `campaign_prompt_sessions`, `campaign_attempts`, `campaign_season_scores`, `campaign_leaderboard`. RLS: no client writes to scores/attempts; `reference_design` column-revoked for JWT. Seed: `npm run seed:season`. |
+| Campaign submit API + scoring | `/api/campaign/*` (no season UI yet) | `src/lib/campaign-scoring.ts`, `src/lib/campaign-db.ts`, `src/lib/campaign-evaluate.ts`, `src/lib/supabase/admin.ts`, `src/app/api/campaign/**` | Artifact 5 (#17): server-authoritative `v1_correct_diff_cover`; max 3 attempts; sticky `started_at`; private `duration_ms`; LB has no times. Endpoints: `GET …/seasons/current` (any), `GET …/seasons/:id/prompts` (auth, strip ref), `POST …/prompts/:promptId/start` (auth), `POST …/submit` (auth), `GET …/leaderboard` (any, no times), `GET …/me` (auth, private durations). **Not** Campaign season play UI (Artifact 6). |
 
 ### Deep links (design canvas)
 
@@ -39,7 +40,7 @@
 | --- | --- | --- |
 | localStorage | `sdl-solo-progress-v1`, `sdl-campaign-progress-v1`, `sdl-training-progress-v1` | Always written (`src/lib/solo-levels.ts`, `src/lib/campaign.ts`, `src/lib/training-lessons.ts`) |
 | Supabase | `solo_progress`, `campaign_progress`, `training_progress` | RLS own-row; `20260327120000_progress_tables.sql` + `20260809120300_solo_progress.sql` |
-| Supabase (Campaign seasons) | `profiles`, `campaign_seasons`, `campaign_prompts`, `campaign_prompt_sessions`, `campaign_attempts`, `campaign_season_scores` | Schema/RLS Artifact 4; service-role writes for attempts/scores (API later). Seed from fixture via `scripts/seed-season.ts`. |
+| Supabase (Campaign seasons) | `profiles`, `campaign_seasons`, `campaign_prompts`, `campaign_prompt_sessions`, `campaign_attempts`, `campaign_season_scores` | Schema/RLS Artifact 4; **Artifact 5** service-role writes attempts/scores via submit API. Seed from fixture via `scripts/seed-season.ts`. |
 | Merge | `POST /api/progress/merge` | On login: union local+remote for campaign + training + solo; hydrate localStorage |
 
 ## Stack (shipped)
@@ -60,7 +61,7 @@
 | `XAI_API_KEY` | server only | SpaceXAI; never `NEXT_PUBLIC_` |
 | `NEXT_PUBLIC_SUPABASE_URL` | public | Project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | public | Prefer publishable; anon alias OK |
-| `SUPABASE_SERVICE_ROLE_KEY` | server optional | Not required for user-scoped progress APIs |
+| `SUPABASE_SERVICE_ROLE_KEY` | server | Required for Campaign submit/LB APIs (Artifact 5) + `npm run seed:season`; not required for user-scoped progress APIs |
 
 Setup: `.env.example`, `docs/setup-auth.md`.
 
@@ -85,7 +86,8 @@ Legacy 15-level map data remains in `src/lib/campaign.ts` for optional `?campaig
 
 ## Not shipped yet (do not invent as live)
 
-- Competitive Campaign seasons, leaderboard, submit scoring `v1_correct_diff_cover` (Artifacts 4–7 / UI)
+- Competitive Campaign **season play UI** + in-app leaderboard surface (Artifact 6 / #12) — API exists (Artifact 5)
+- Campaign hardening: season end freeze, reference reveal (Artifact 7 / #10)
 - Plan B constraint engine (parked)
 
 ## Training lesson IDs — 16 total
