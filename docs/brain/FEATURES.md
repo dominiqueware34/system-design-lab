@@ -1,6 +1,6 @@
 # Shipped Features (main)
 
-> Last verified: 2026-08-10 · Artifact 5 Campaign submit API on `feat/campaign-submit-api` (#17)  
+> Last verified: 2026-08-10 · Artifact 6 Campaign season UI on `feat/campaign-season-ui` (#12)  
 > Rule: if it is not listed here, treat it as **NOT shipped** unless STATUS Active work names it in-flight.
 
 ## Product surfaces
@@ -14,7 +14,7 @@
 | Design canvas | `/design/[problemId]` | `src/components/canvas/*` | React Flow; attributes; evaluation panel |
 | Evaluation API | `POST /api/evaluate` | `src/app/api/evaluate/route.ts`, `src/lib/ai.ts`, `src/lib/evaluation-schema.ts`, `src/lib/serialize-design.ts` | SpaceXAI `grok-4.5` |
 | Solo Mode | `/solo` · design via `?solo=solo-l1\|solo-l2` | `src/app/solo/page.tsx`, `src/components/solo/SoloHub.tsx`, `src/lib/solo-levels.ts`, `src/app/api/solo/levels/route.ts`, `src/app/api/problems/*`, `src/app/api/progress/solo/route.ts` | **2 multi-problem levels** (`solo-l1` Foundations ~10 classic, `solo-l2` Agentic ~6); L2 locked until L1 complete; **no wrenches**; pass ≥ passScore → bestScore/stars/**durationMs**; content APIs constant-backed |
-| Campaign shell | `/campaign` | `src/app/campaign/page.tsx` | Pitch + Google CTA (guests); signed-in season placeholder — competitive seasons not runtime yet |
+| Campaign seasons MVP (UI) | `/campaign` · `/campaign/play/[promptId]` · `/campaign/leaderboard` · `/campaign/stats` | `src/app/campaign/**`, `src/components/campaign/CampaignHub.tsx`, `CampaignPlayClient.tsx`, `CampaignLeaderboard.tsx`, `CampaignMyStats.tsx`, `src/lib/campaign-client.ts`, `DesignWorkspace` `mode: "campaign"` | Artifact 6 (#12): guest pitch + Google; signed-in season hub (timer, N/20, play, LB); auth gate on play; submit only `POST /api/campaign/submit`; max 3 attempts; **no wrenches**; public LB (rank, name, season_score, stars, prompts — **no time**); my stats private durations via `/me`. Depends on Artifact 5 APIs. |
 | Wrench API | `POST /api/wrench` | `src/app/api/wrench/route.ts`, `src/lib/wrench-schema.ts` | AI incidents on **legacy** map path (`?campaign=w*`) only — not Solo multi-problem |
 | Training lessons | `/training`, `/training/[lessonId]` | `src/lib/training-lessons.ts`, `src/components/training/TrainingWorkspace.tsx` | 16 lessons |
 | Guided builds | `/training/guided/[buildId]` | `src/lib/guided-builds.ts`, `src/components/training/GuidedBuildWorkspace.tsx` | 5 builds |
@@ -24,15 +24,16 @@
 | Marketing / research | docs only | `docs/marketing/*`, `docs/market-research-viability.md` | Not runtime |
 | Campaign season prompt pack (offline) | fixture only (no UI) | `fixtures/campaign/season-prompts-v1.json`, `src/lib/catalog-schema.ts`, `src/lib/design-graph-validate.ts`, `src/lib/campaign-prompt-schema.ts`, `scripts/generate-season-prompts.ts` | Artifact 3: **20** pre-gen prompts + reference designs; operator docs `docs/specs/campaign-prompt-generation.md`. Not competitive season UI. |
 | Campaign seasons DB (schema) | migrations + seed only (no UI) | `supabase/migrations/20260809120000_profiles.sql`, `…20100_campaign_seasons_and_prompts.sql`, `…20200_campaign_play_tables.sql`, `scripts/seed-season.ts` | Artifact 4 (#14): `profiles`, `campaign_seasons`, `campaign_prompts` (+ public view), `campaign_prompt_sessions`, `campaign_attempts`, `campaign_season_scores`, `campaign_leaderboard`. RLS: no client writes to scores/attempts; `reference_design` column-revoked for JWT. Seed: `npm run seed:season`. |
-| Campaign submit API + scoring | `/api/campaign/*` (no season UI yet) | `src/lib/campaign-scoring.ts`, `src/lib/campaign-db.ts`, `src/lib/campaign-evaluate.ts`, `src/lib/supabase/admin.ts`, `src/app/api/campaign/**` | Artifact 5 (#17): server-authoritative `v1_correct_diff_cover`; max 3 attempts; sticky `started_at`; private `duration_ms`; LB has no times. Endpoints: `GET …/seasons/current` (any), `GET …/seasons/:id/prompts` (auth, strip ref), `POST …/prompts/:promptId/start` (auth), `POST …/submit` (auth), `GET …/leaderboard` (any, no times), `GET …/me` (auth, private durations). **Not** Campaign season play UI (Artifact 6). |
+| Campaign submit API + scoring | `/api/campaign/*` | `src/lib/campaign-scoring.ts`, `src/lib/campaign-db.ts`, `src/lib/campaign-evaluate.ts`, `src/lib/supabase/admin.ts`, `src/app/api/campaign/**` | Artifact 5 (#17): server-authoritative `v1_correct_diff_cover`; max 3 attempts; sticky `started_at`; private `duration_ms`; LB has no times. Endpoints: `GET …/seasons/current` (any), `GET …/seasons/:id/prompts` (auth, strip ref), `POST …/prompts/:promptId/start` (auth), `POST …/submit` (auth), `GET …/leaderboard` (any, no times), `GET …/me` (auth, private durations). UI: Artifact 6. |
 
 ### Deep links (design canvas)
 
-| Query | Behavior |
+| Query / route | Behavior |
 | --- | --- |
 | `?solo=solo-l1` or `?solo=solo-l2` | Multi-problem Solo Mode (problem must be in that level); evaluate API; no wrenches; back → `/solo` |
 | `?campaign=<legacyLevelId>` | Legacy 15-level map path with wrenches (`w1-l1` …) |
-| (none) | Free practice; back link → `/practice` |
+| `/campaign/play/[promptId]` | Competitive season play; `DesignWorkspace` `mode: "campaign"` → `POST /api/campaign/submit` only; **no wrenches**; auth required; back → `/campaign` |
+| (none on `/design/…`) | Free practice; back link → `/practice` |
 
 ## Progress storage detail
 
@@ -86,7 +87,6 @@ Legacy 15-level map data remains in `src/lib/campaign.ts` for optional `?campaig
 
 ## Not shipped yet (do not invent as live)
 
-- Competitive Campaign **season play UI** + in-app leaderboard surface (Artifact 6 / #12) — API exists (Artifact 5)
 - Campaign hardening: season end freeze, reference reveal (Artifact 7 / #10)
 - Plan B constraint engine (parked)
 
