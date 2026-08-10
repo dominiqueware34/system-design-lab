@@ -23,6 +23,7 @@
 | Progress dual model | `/api/progress/solo`, `/api/progress/campaign`, `/api/progress/training`, `/api/progress/merge` | `src/lib/progress-sync.ts`, `src/lib/progress-merge.ts`, `src/lib/progress-db.ts`, migrations | localStorage **always** (`sdl-solo-progress-v1`, `sdl-campaign-progress-v1`, `sdl-training-progress-v1`) + Supabase when signed in; Solo merge-on-login |
 | Marketing / research | docs only | `docs/marketing/*`, `docs/market-research-viability.md` | Not runtime |
 | Campaign season prompt pack (offline) | fixture only (no UI) | `fixtures/campaign/season-prompts-v1.json`, `src/lib/catalog-schema.ts`, `src/lib/design-graph-validate.ts`, `src/lib/campaign-prompt-schema.ts`, `scripts/generate-season-prompts.ts` | Artifact 3: **20** pre-gen prompts + reference designs; operator docs `docs/specs/campaign-prompt-generation.md`. Not competitive season UI. |
+| Campaign seasons DB (schema) | migrations + seed only (no UI) | `supabase/migrations/20260809120000_profiles.sql`, `…20100_campaign_seasons_and_prompts.sql`, `…20200_campaign_play_tables.sql`, `scripts/seed-season.ts` | Artifact 4 (#14): `profiles`, `campaign_seasons`, `campaign_prompts` (+ public view), `campaign_prompt_sessions`, `campaign_attempts`, `campaign_season_scores`, `campaign_leaderboard`. RLS: no client writes to scores/attempts; `reference_design` column-revoked for JWT. Seed: `npm run seed:season`. **Not** live season play UI (Artifact 6) or submit API (Artifact 5). |
 
 ### Deep links (design canvas)
 
@@ -36,8 +37,9 @@
 
 | Store | Identifiers | Behavior |
 | --- | --- | --- |
-| localStorage | `sdl-solo-progress-v1`, `sdl-campaign-progress-v1`, `sdl-training-progress-v1` | Always written (`src/lib/solo-levels.ts`, `campaign.ts`, `training-lessons.ts`) |
-| Supabase | `solo_progress`, `campaign_progress`, `training_progress` | RLS own-row; migrations under `supabase/migrations/` |
+| localStorage | `sdl-solo-progress-v1`, `sdl-campaign-progress-v1`, `sdl-training-progress-v1` | Always written (`src/lib/solo-levels.ts`, `src/lib/campaign.ts`, `src/lib/training-lessons.ts`) |
+| Supabase | `solo_progress`, `campaign_progress`, `training_progress` | RLS own-row; `20260327120000_progress_tables.sql` + `20260809120300_solo_progress.sql` |
+| Supabase (Campaign seasons) | `profiles`, `campaign_seasons`, `campaign_prompts`, `campaign_prompt_sessions`, `campaign_attempts`, `campaign_season_scores` | Schema/RLS Artifact 4; service-role writes for attempts/scores (API later). Seed from fixture via `scripts/seed-season.ts`. |
 | Merge | `POST /api/progress/merge` | On login: union local+remote for campaign + training + solo; hydrate localStorage |
 
 ## Stack (shipped)

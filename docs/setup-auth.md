@@ -32,6 +32,26 @@ supabase/migrations/20260327120000_progress_tables.sql
 
 Creates `campaign_progress` and `training_progress` with **RLS** (authenticated users select/insert/update **own** rows only).
 
+## 3b. Campaign seasons tables (SQL) — Artifact 4
+
+After progress tables, apply in order:
+
+```text
+supabase/migrations/20260809120000_profiles.sql
+supabase/migrations/20260809120100_campaign_seasons_and_prompts.sql
+supabase/migrations/20260809120200_campaign_play_tables.sql
+```
+
+Creates competitive Campaign tables (`profiles`, `campaign_seasons`, `campaign_prompts`, sessions, attempts, scores) with RLS. **`reference_design` is not granted to JWT clients.** Attempts/scores have no client write policies.
+
+Seed a **draft** season from the offline fixture (service role required):
+
+```bash
+# .env.local: NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY
+npm run seed:season -- --dry-run   # validate fixture only
+npm run seed:season                # upsert slug season-v1-draft + 20 prompts
+```
+
 ## 4. Local env
 
 ```bash

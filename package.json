@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "tsx --test src/lib/**/*.test.ts",
-    "generate:season-prompts": "tsx scripts/generate-season-prompts.ts"
+    "generate:season-prompts": "tsx scripts/generate-season-prompts.ts",
+    "seed:season": "tsx scripts/seed-season.ts"
   },
   "dependencies": {
     "@ai-sdk/xai": "^4.0.29",

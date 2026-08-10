@@ -20,7 +20,7 @@ Replace legacy 15×1 CampaignMap on `/solo` with **2 multi-problem levels**:
 
 ### Progress
 - localStorage `sdl-solo-progress-v1`
-- Supabase `solo_progress` (`supabase/migrations/20260809120000_solo_progress.sql`)
+- Supabase `solo_progress` (`supabase/migrations/20260809120300_solo_progress.sql`)
   - Seeds from `campaign_progress` map completions when empty
 - `GET/PUT /api/progress/solo`
 - Merge-on-login includes solo (`POST /api/progress/merge`)
@@ -44,7 +44,7 @@ npm test
 NODE_ENV=production npx next build
 
 # Apply migration in Supabase SQL editor (or CLI):
-# supabase/migrations/20260809120000_solo_progress.sql
+# supabase/migrations/20260809120300_solo_progress.sql
 
 npm run dev
 ```
@@ -60,7 +60,7 @@ Manual:
 
 ## Out of scope (intentional)
 
-- Campaign seasons tables / submit API / leaderboard
+- Campaign seasons tables / submit API / leaderboard (Artifact 4 schema already on main via #21)
 - Plan B constraint engine
 - Removing legacy `campaign.ts` / wrench path entirely (`?campaign=w*` still works)
 
