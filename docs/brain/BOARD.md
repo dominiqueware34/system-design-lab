@@ -29,18 +29,16 @@ SHIPPED (summary — full detail in FEATURES.md)
   [x] Artifact 2: Solo multi-problem levels + progress + duration (PR #22 / #11)
   [x] Artifact 5: Campaign submit API + scoring (PR #23 / #17)
   [x] Artifact 6: Campaign season UI + leaderboard (PR #24 / #12)
+  [x] Artifact 7 (reduced): season freeze + ref reveal API (PR #27 / #10)
 
 IN FLIGHT
-  [~] Artifact 7 (reduced): Season freeze + post-season ref reveal
-      branch:   feat/campaign-season-end
-      worktree: system-design-lab (main tree / feature branch)
-      issue:    #10
-      next:     effective status from ends_at; freeze start/submit; reveal ref when ended
-      deferred: rate limits #25, next-season seed #26 (planning)
+  (none)
 
 PLANNED
   [ ] Campaign rate limits / abuse protection                         #25  label:planning
   [ ] Campaign operator next-season seed                              #26  label:planning
+  note: Season DB status expire / Queues+EF cancelled (#28 closed not_planned)
+  note: owner may handle season-end persistence later (not on board)
   note: Plan B PARKED
   note: scoring v1_correct_diff_cover (solo-vs-campaign.md)
 
@@ -53,10 +51,9 @@ BLOCKED
 ```
 PARALLEL STATUS
 ===============
-main                             system-design-lab              f6c57cd  CURRENT   claims
-feat/campaign-season-end         —                              —        planned   #10
+main                             system-design-lab              a88e513  CURRENT
 STALE worktrees: auth-p0, map-p0, marketing — prune
-Open PRs: (none at claim)
+Open PRs: (none)
 ```
 
 ## How to add a feature to this board

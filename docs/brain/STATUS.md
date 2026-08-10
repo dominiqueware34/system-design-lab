@@ -1,27 +1,27 @@
 # Status / Where Left Off
 
-> Last updated: 2026-08-10 · Updated by: claim #10 freeze+reveal; #12 shipped; #25/#26 planning  
+> Last updated: 2026-08-10 · Updated by: clear #10; cancel queues #28 / PR #29  
 > Authority: Active work on **main**. Git worktree list is ground truth.
 
 ## TL;DR
 
-Campaign seasons MVP UI shipped (#12 / PR #24). **Active:** #10 reduced — season freeze + post-season `reference_design` reveal only. Rate limits (#25) and next-season seed (#26) are **planning** labels. Plan B parked.
+Campaign seasons MVP through freeze/ref-reveal API is on **main** (Artifacts 0–7 reduced). **No active workstream.** Queues / background-jobs track cancelled (#28 not_planned; PR #29 closed). Season DB status expire deferred to owner later. #25/#26 still planning. Plan B parked.
 
 ## Active work (in flight) — committed on main
 
 | Workstream | Branch | Worktree basename | State |
 | --- | --- | --- | --- |
-| Season freeze + ref reveal (Artifact 7 reduced) | `feat/campaign-season-end` | (feature branch on main tree OK) | active · #10 |
+| *(none)* | — | — | — |
 
 ## Next actions
 
-1. Implement #10 (freeze + reveal) → PR → merge.
+1. Optional: close #12 if still open (UI already merged PR #24).
 2. Leave #25 / #26 until product schedules them.
-3. Close #12 if still open (code merged).
+3. Season-end DB persistence: owner later — not Queues/EF board item.
 4. Prune STALE worktrees when convenient.
 5. Do not start Plan B.
 
 ## Session handoff
 
-- #10: effective season status from `ends_at` on read path; sync DB `live` → `ended` when expired; freeze start/submit; GET prompts may include `reference_design` only when ended.
-- Do not implement rate limits or next-season seed on this branch.
+- Competitive freeze + ref reveal use **timestamps** (effective status) on main — no write-on-read.
+- Do not re-open Queues/Cron/EF work unless product restarts #28-class work.
