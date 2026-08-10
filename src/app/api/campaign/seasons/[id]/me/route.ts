@@ -41,7 +41,7 @@ export async function GET(
 
   try {
     const nowMs = Date.now();
-    const season = await fetchSeasonById(admin, seasonId, nowMs);
+    const season = await fetchSeasonById(admin, seasonId);
     if (!season) {
       return NextResponse.json({ error: "Season not found" }, { status: 404 });
     }

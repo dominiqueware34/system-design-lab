@@ -2,6 +2,10 @@
  * Campaign season DB helpers (Artifact 5 + 7 reduced).
  * Prefer service role for writes and public reads.
  * Never return reference_design unless season is effectively ended.
+ *
+ * Status lifecycle persistence (live → ended) is NOT done here.
+ * See supabase migration `campaign_expire_seasons` + operator schedule —
+ * app code only evaluates timestamps for freeze / reference reveal.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -68,36 +72,10 @@ const PUBLIC_PROMPT_COLUMNS =
 const REVEAL_PROMPT_COLUMNS =
   "id, season_id, prompt_key, problem, difficulty, track, sort_order, created_at, reference_design, rationale";
 
-/**
- * If DB still says live but ends_at has passed, persist status=ended.
- * Returns the season row (status updated when synced).
- */
-export async function syncSeasonStatusIfNeeded(
-  admin: SupabaseClient,
-  season: CampaignSeasonRow,
-  nowMs: number = Date.now()
-): Promise<CampaignSeasonRow> {
-  const effective = effectiveSeasonStatus(season, nowMs);
-  if (effective === "ended" && season.status === "live") {
-    const { data, error } = await admin
-      .from("campaign_seasons")
-      .update({ status: "ended", updated_at: new Date(nowMs).toISOString() })
-      .eq("id", season.id)
-      .eq("status", "live")
-      .select("*")
-      .maybeSingle();
-    if (error) throw error;
-    if (data) return data as CampaignSeasonRow;
-    return { ...season, status: "ended" };
-  }
-  return season;
-}
-
-/** Fetch by id + timestamp sync (read path). */
+/** Fetch season by id (read-only; no status writes). */
 export async function fetchSeasonById(
   admin: SupabaseClient,
-  seasonId: string,
-  nowMs: number = Date.now()
+  seasonId: string
 ): Promise<CampaignSeasonRow | null> {
   const { data, error } = await admin
     .from("campaign_seasons")
@@ -105,13 +83,12 @@ export async function fetchSeasonById(
     .eq("id", seasonId)
     .maybeSingle();
   if (error) throw error;
-  if (!data) return null;
-  return syncSeasonStatusIfNeeded(admin, data as CampaignSeasonRow, nowMs);
+  return (data as CampaignSeasonRow | null) ?? null;
 }
 
 /**
- * Current competitive season: effectively live only.
- * Syncs expired live rows to ended; never returns ended/draft as current.
+ * Current competitive season: effectively live only (timestamps).
+ * Read-only — does not flip DB status; that is the Supabase expire job.
  */
 export async function fetchCurrentSeason(
   admin: SupabaseClient,
@@ -125,48 +102,30 @@ export async function fetchCurrentSeason(
 
   if (error) throw error;
   const rows = (liveRows ?? []) as CampaignSeasonRow[];
-  if (rows.length === 0) return null;
-
-  const resolved: CampaignSeasonRow[] = [];
-  for (const row of rows) {
-    const synced = await syncSeasonStatusIfNeeded(admin, row, nowMs);
-    if (isSeasonOpenForPlay(synced, nowMs)) {
-      resolved.push(synced);
-    }
-  }
-  if (resolved.length === 0) return null;
-
-  // Prefer window that contains now (already filtered open); first is most recent starts_at.
-  return resolved[0] ?? null;
+  const open = rows.filter((s) => isSeasonOpenForPlay(s, nowMs));
+  return open[0] ?? null;
 }
 
 /**
- * Most recently ended season (DB status ended, or live rows synced to ended).
- * Used for post-season hub / reference reveal when no live season is open.
+ * Most recently effectively-ended season (DB `ended`, or live past ends_at
+ * before the expire job has run). Read-only.
  */
 export async function fetchMostRecentEndedSeason(
   admin: SupabaseClient,
   nowMs: number = Date.now()
 ): Promise<CampaignSeasonRow | null> {
-  // First sync any expired live rows.
-  const { data: liveRows, error: liveErr } = await admin
+  const { data, error } = await admin
     .from("campaign_seasons")
     .select("*")
-    .eq("status", "live");
-  if (liveErr) throw liveErr;
-  for (const row of (liveRows ?? []) as CampaignSeasonRow[]) {
-    await syncSeasonStatusIfNeeded(admin, row, nowMs);
-  }
-
-  const { data: endedRows, error } = await admin
-    .from("campaign_seasons")
-    .select("*")
-    .eq("status", "ended")
+    .in("status", ["ended", "live"])
     .order("ends_at", { ascending: false, nullsFirst: false })
-    .limit(5);
+    .limit(20);
   if (error) throw error;
-  const rows = (endedRows ?? []) as CampaignSeasonRow[];
-  return rows[0] ?? null;
+  const rows = (data ?? []) as CampaignSeasonRow[];
+  const ended = rows.filter(
+    (s) => effectiveSeasonStatus(s, nowMs) === "ended"
+  );
+  return ended[0] ?? null;
 }
 
 /**
