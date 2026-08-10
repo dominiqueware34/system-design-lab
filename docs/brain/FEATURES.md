@@ -1,6 +1,6 @@
 # Shipped Features (main)
 
-> Last verified: 2026-08-10 · Artifact 6 Campaign season UI on `feat/campaign-season-ui` (#12)  
+> Last verified: 2026-08-10 · Artifact 7 reduced (season freeze + ref reveal) on `feat/campaign-season-end` (#10)  
 > Rule: if it is not listed here, treat it as **NOT shipped** unless STATUS Active work names it in-flight.
 
 ## Product surfaces
@@ -24,7 +24,8 @@
 | Marketing / research | docs only | `docs/marketing/*`, `docs/market-research-viability.md` | Not runtime |
 | Campaign season prompt pack (offline) | fixture only (no UI) | `fixtures/campaign/season-prompts-v1.json`, `src/lib/catalog-schema.ts`, `src/lib/design-graph-validate.ts`, `src/lib/campaign-prompt-schema.ts`, `scripts/generate-season-prompts.ts` | Artifact 3: **20** pre-gen prompts + reference designs; operator docs `docs/specs/campaign-prompt-generation.md`. Not competitive season UI. |
 | Campaign seasons DB (schema) | migrations + seed only (no UI) | `supabase/migrations/20260809120000_profiles.sql`, `…20100_campaign_seasons_and_prompts.sql`, `…20200_campaign_play_tables.sql`, `scripts/seed-season.ts` | Artifact 4 (#14): `profiles`, `campaign_seasons`, `campaign_prompts` (+ public view), `campaign_prompt_sessions`, `campaign_attempts`, `campaign_season_scores`, `campaign_leaderboard`. RLS: no client writes to scores/attempts; `reference_design` column-revoked for JWT. Seed: `npm run seed:season`. |
-| Campaign submit API + scoring | `/api/campaign/*` | `src/lib/campaign-scoring.ts`, `src/lib/campaign-db.ts`, `src/lib/campaign-evaluate.ts`, `src/lib/supabase/admin.ts`, `src/app/api/campaign/**` | Artifact 5 (#17): server-authoritative `v1_correct_diff_cover`; max 3 attempts; sticky `started_at`; private `duration_ms`; LB has no times. Endpoints: `GET …/seasons/current` (any), `GET …/seasons/:id/prompts` (auth, strip ref), `POST …/prompts/:promptId/start` (auth), `POST …/submit` (auth), `GET …/leaderboard` (any, no times), `GET …/me` (auth, private durations). UI: Artifact 6. |
+| Campaign submit API + scoring | `/api/campaign/*` | `src/lib/campaign-scoring.ts`, `src/lib/campaign-db.ts`, `src/lib/campaign-evaluate.ts`, `src/lib/supabase/admin.ts`, `src/app/api/campaign/**` | Artifact 5 (#17): server-authoritative `v1_correct_diff_cover`; max 3 attempts; sticky `started_at`; private `duration_ms`; LB has no times. Endpoints: `GET …/seasons/current` (any), `GET …/seasons/:id/prompts` (auth, strip ref while live), `POST …/prompts/:promptId/start` (auth), `POST …/submit` (auth), `GET …/leaderboard` (any, no times), `GET …/me` (auth, private durations). UI: Artifact 6. |
+| Campaign season freeze + ref reveal | campaign APIs + hub | `src/lib/campaign-season-status.ts`, `campaign-db` sync, `GET …/prompts`, hub | Artifact 7 **reduced** (#10): effective status from `ends_at` (live past end → ended, DB sync); freezes **start + submit**; `referenceDesign` on GET prompts **only when ended**; `GET …/current` returns `endedSeason` when none live. **Not** rate limits (#25 planning) or next-season seed automation (#26 planning). |
 
 ### Deep links (design canvas)
 

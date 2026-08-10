@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   fetchCurrentSeason,
+  fetchMostRecentEndedSeason,
   serializeSeasonPublic,
 } from "@/lib/campaign-db";
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -9,7 +10,9 @@ export const runtime = "nodejs";
 
 /**
  * GET /api/campaign/seasons/current — public (any).
- * Returns the live season metadata, or null season when none is live.
+ * - `season`: effectively live season for competitive play, or null
+ * - `endedSeason`: most recent ended season (for post-season reference reveal / LB)
+ * Effective status honors ends_at (expired live is synced to ended).
  */
 export async function GET() {
   const admin = createServiceClient();
@@ -24,11 +27,19 @@ export async function GET() {
   }
 
   try {
-    const season = await fetchCurrentSeason(admin);
-    if (!season) {
-      return NextResponse.json({ season: null });
+    const nowMs = Date.now();
+    const season = await fetchCurrentSeason(admin, nowMs);
+    if (season) {
+      return NextResponse.json({
+        season: serializeSeasonPublic(season, nowMs),
+        endedSeason: null,
+      });
     }
-    return NextResponse.json({ season: serializeSeasonPublic(season) });
+    const ended = await fetchMostRecentEndedSeason(admin, nowMs);
+    return NextResponse.json({
+      season: null,
+      endedSeason: ended ? serializeSeasonPublic(ended, nowMs) : null,
+    });
   } catch (err) {
     console.error("[api/campaign/seasons/current]", err);
     const message =

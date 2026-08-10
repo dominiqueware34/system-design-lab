@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2, Trophy } from "lucide-react";
 import {
-  fetchCurrentSeason,
+  fetchCurrentSeasonContext,
   fetchLeaderboard,
   type CampaignSeasonPublic,
   type LeaderboardEntry,
@@ -30,15 +30,17 @@ export function CampaignLeaderboard() {
   const load = useCallback(async () => {
     setState({ status: "loading" });
     try {
-      const season = await fetchCurrentSeason();
-      if (!season) {
+      const { season, endedSeason } = await fetchCurrentSeasonContext();
+      const active = season ?? endedSeason;
+      if (!active) {
         setState({
           status: "empty",
-          message: "No live season — leaderboard will appear when a season is live.",
+          message:
+            "No season available — leaderboard appears when a season is live or just ended.",
         });
         return;
       }
-      const data = await fetchLeaderboard(season.id, 100);
+      const data = await fetchLeaderboard(active.id, 100);
       setState({
         status: "ready",
         season: data.season,

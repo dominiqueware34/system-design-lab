@@ -6,6 +6,7 @@ import {
   fetchSeasonById,
   fetchSeasonPromptsPublic,
   insertAttempt,
+  isSeasonOpenForPlay,
   recomputeSeasonScore,
 } from "@/lib/campaign-db";
 import { evaluateCampaignDesign, problemFromJson } from "@/lib/campaign-evaluate";
@@ -94,9 +95,12 @@ export async function POST(req: Request) {
     }
 
     const season = await fetchSeasonById(admin, prompt.season_id);
-    if (!season || season.status !== "live") {
+    if (!season || !isSeasonOpenForPlay(season)) {
       return NextResponse.json(
-        { error: "Season is not open for submissions" },
+        {
+          error: "Season is not open for submissions",
+          reason: "season_frozen_or_ended",
+        },
         { status: 403 }
       );
     }

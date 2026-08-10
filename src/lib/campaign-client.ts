@@ -1,6 +1,6 @@
 /**
- * Client-side Campaign season API helpers (Artifact 6).
- * Never expects reference_design in responses.
+ * Client-side Campaign season API helpers (Artifact 6 + 7 reduced).
+ * referenceDesign only appears after season end (API-controlled).
  */
 
 import type { DesignGraph, DesignProblem } from "@/lib/types";
@@ -13,6 +13,9 @@ export type CampaignSeasonPublic = {
   startsAt: string | null;
   endsAt: string | null;
   rules: Record<string, unknown> | null;
+  openForPlay?: boolean;
+  referenceReveal?: boolean;
+  dbStatus?: string;
 };
 
 export type CampaignPromptClient = {
@@ -23,6 +26,9 @@ export type CampaignPromptClient = {
   difficulty: string;
   track: string;
   sortOrder: number;
+  /** Present only when season has ended (post-season reveal). */
+  referenceDesign?: unknown;
+  rationale?: unknown;
 };
 
 export type LeaderboardEntry = {
@@ -105,10 +111,25 @@ async function readJson<T>(res: Response): Promise<T & { error?: string }> {
   return data;
 }
 
-export async function fetchCurrentSeason(): Promise<CampaignSeasonPublic | null> {
+export async function fetchCurrentSeasonContext(): Promise<{
+  season: CampaignSeasonPublic | null;
+  endedSeason: CampaignSeasonPublic | null;
+}> {
   const res = await fetch("/api/campaign/seasons/current");
-  const data = await readJson<{ season: CampaignSeasonPublic | null }>(res);
-  return data.season;
+  const data = await readJson<{
+    season: CampaignSeasonPublic | null;
+    endedSeason?: CampaignSeasonPublic | null;
+  }>(res);
+  return {
+    season: data.season,
+    endedSeason: data.endedSeason ?? null,
+  };
+}
+
+/** Live competitive season only (null if none open). */
+export async function fetchCurrentSeason(): Promise<CampaignSeasonPublic | null> {
+  const { season } = await fetchCurrentSeasonContext();
+  return season;
 }
 
 export async function fetchSeasonPrompts(
@@ -116,6 +137,7 @@ export async function fetchSeasonPrompts(
 ): Promise<{
   season: CampaignSeasonPublic;
   prompts: CampaignPromptClient[];
+  referenceRevealed?: boolean;
 }> {
   const res = await fetch(`/api/campaign/seasons/${seasonId}/prompts`);
   return readJson(res);
